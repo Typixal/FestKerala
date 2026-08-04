@@ -317,6 +317,38 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
   );
 }
 
+// ─── Field (shared form field wrapper — must live outside PostForm so it's
+// not redefined on every render, which would remount inputs and drop focus) ─
+
+function Field({
+  id,
+  label,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p
+          className="text-red-400 text-xs mt-1"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── PostForm ───────────────────────────────────────────────────────────────
 
 type FormState = {
@@ -528,33 +560,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const handleBackdrop = (e: React.MouseEvent) => {
     if (e.target === backdropRef.current) onClose();
   };
-
-  const Field = ({
-    id,
-    label,
-    error,
-    children,
-  }: {
-    id: string;
-    label: string;
-    error?: string;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      <label htmlFor={id} className="field-label">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p
-          className="text-red-400 text-xs mt-1"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {error}
-        </p>
-      )}
-    </div>
-  );
 
   return (
     <div
@@ -777,7 +782,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
                     className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                       active
                         ? TAG_STYLES[tag]
-                        : "bg-transparent text-[#666] border-[#2a2a2a]"
+                        : "bg-transparent text-[#666] border-border"
                     }`}
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
