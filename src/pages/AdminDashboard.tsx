@@ -1,6 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { DISTRICTS, CATEGORIES, TAG_STYLES, type Fest, type Category } from "../types";
+import {
+  DISTRICTS,
+  CATEGORIES,
+  TAG_STYLES,
+  type Fest,
+  type Category,
+} from "../types";
 
 function useAuthedUserEmail() {
   const [email, setEmail] = useState<string>("");
@@ -14,12 +20,14 @@ function useAuthedUserEmail() {
 
 function EditableFest({
   fest,
+  mode,
   selected,
   onToggleSelect,
   onSaved,
   onRemoved,
 }: {
   fest: Fest;
+  mode: "pending" | "approved";
   selected: boolean;
   onToggleSelect: () => void;
   onSaved: (updated: Fest) => void;
@@ -27,7 +35,9 @@ function EditableFest({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Fest>(fest);
-  const [busy, setBusy] = useState<null | "approve" | "reject" | "save">(null);
+  const [busy, setBusy] = useState<
+    null | "approve" | "reject" | "unlist" | "save"
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   const toggleTag = (tag: Category) => {
@@ -79,7 +89,9 @@ function EditableFest({
   };
 
   const reject = async () => {
-    if (!confirm(`Reject and delete "${fest.fest_name}"? This can't be undone.`))
+    if (
+      !confirm(`Reject and delete "${fest.fest_name}"? This can't be undone.`)
+    )
       return;
     setBusy("reject");
     setError(null);
@@ -87,6 +99,24 @@ function EditableFest({
     setBusy(null);
     if (error) {
       setError("Reject failed. Try again.");
+      return;
+    }
+    onRemoved(fest.id);
+  };
+
+  const unlist = async () => {
+    if (
+      !confirm(
+        `Unlist and delete "${fest.fest_name}"? It will be removed from the site permanently — this can't be undone.`,
+      )
+    )
+      return;
+    setBusy("unlist");
+    setError(null);
+    const { error } = await supabase.from("fests").delete().eq("id", fest.id);
+    setBusy(null);
+    if (error) {
+      setError("Unlist failed. Try again.");
       return;
     }
     onRemoved(fest.id);
@@ -226,7 +256,7 @@ function EditableFest({
                       className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${
                         active
                           ? TAG_STYLES[tag]
-                          : "bg-transparent text-[#666] border-[#2a2a2a]"
+                          : "bg-transparent text-[#666] border-border"
                       }`}
                       style={{ fontFamily: "var(--font-mono)" }}
                     >
@@ -293,32 +323,50 @@ function EditableFest({
             >
               Edit
             </button>
-            <button
-              onClick={reject}
-              disabled={busy === "reject"}
-              className="text-xs px-3 py-1.5 rounded-lg font-medium"
-              style={{
-                background: "rgba(239,68,68,0.1)",
-                color: "#f87171",
-                border: "1px solid rgba(239,68,68,0.35)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {busy === "reject" ? "Rejecting…" : "Reject"}
-            </button>
-            <button
-              onClick={approve}
-              disabled={busy === "approve"}
-              className="text-xs px-3 py-1.5 rounded-lg font-medium"
-              style={{
-                background: "rgba(34,197,94,0.12)",
-                color: "#4ade80",
-                border: "1px solid rgba(34,197,94,0.35)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {busy === "approve" ? "Approving…" : "Approve"}
-            </button>
+            {mode === "pending" ? (
+              <>
+                <button
+                  onClick={reject}
+                  disabled={busy === "reject"}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                  style={{
+                    background: "rgba(239,68,68,0.1)",
+                    color: "#f87171",
+                    border: "1px solid rgba(239,68,68,0.35)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {busy === "reject" ? "Rejecting…" : "Reject"}
+                </button>
+                <button
+                  onClick={approve}
+                  disabled={busy === "approve"}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                  style={{
+                    background: "rgba(34,197,94,0.12)",
+                    color: "#4ade80",
+                    border: "1px solid rgba(34,197,94,0.35)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {busy === "approve" ? "Approving…" : "Approve"}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={unlist}
+                disabled={busy === "unlist"}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                style={{
+                  background: "rgba(239,68,68,0.1)",
+                  color: "#f87171",
+                  border: "1px solid rgba(239,68,68,0.35)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {busy === "unlist" ? "Unlisting…" : "Unlist"}
+              </button>
+            )}
           </>
         )}
       </div>
@@ -328,13 +376,19 @@ function EditableFest({
 
 export default function AdminDashboard() {
   const email = useAuthedUserEmail();
+  const [tab, setTab] = useState<"pending" | "approved">("pending");
+
   const [pending, setPending] = useState<Fest[]>([]);
+  const [pendingLoaded, setPendingLoaded] = useState(false);
+  const [approved, setApproved] = useState<Fest[]>([]);
+  const [approvedLoaded, setApprovedLoaded] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadPending = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     const { data, error } = await supabase
@@ -347,13 +401,39 @@ export default function AdminDashboard() {
       setLoadError("Couldn't load pending fests.");
     } else {
       setPending((data ?? []) as Fest[]);
+      setPendingLoaded(true);
     }
     setLoading(false);
   }, []);
 
+  const loadApproved = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from("fests")
+      .select("*")
+      .eq("status", "approved")
+      .order("start_date", { ascending: true });
+    if (error) {
+      console.error(error);
+      setLoadError("Couldn't load live fests.");
+    } else {
+      setApproved((data ?? []) as Fest[]);
+      setApprovedLoaded(true);
+    }
+    setLoading(false);
+  }, []);
+
+  // Load each tab's data lazily, the first time it's opened (pending loads
+  // immediately since it's the default tab on mount).
   useEffect(() => {
-    load();
-  }, [load]);
+    setSelected(new Set());
+    if (tab === "pending" && !pendingLoaded) loadPending();
+    if (tab === "approved" && !approvedLoaded) loadApproved();
+  }, [tab, pendingLoaded, approvedLoaded, loadPending, loadApproved]);
+
+  const list = tab === "pending" ? pending : approved;
+  const setList = tab === "pending" ? setPending : setApproved;
 
   const toggleSelect = (id: string) => {
     setSelected((s) => {
@@ -365,7 +445,7 @@ export default function AdminDashboard() {
   };
 
   const removeFromList = (id: string) => {
-    setPending((p) => p.filter((f) => f.id !== id));
+    setList((p) => p.filter((f) => f.id !== id));
     setSelected((s) => {
       const next = new Set(s);
       next.delete(id);
@@ -374,7 +454,7 @@ export default function AdminDashboard() {
   };
 
   const updateInList = (updated: Fest) => {
-    setPending((p) => p.map((f) => (f.id === updated.id ? updated : f)));
+    setList((p) => p.map((f) => (f.id === updated.id ? updated : f)));
   };
 
   const bulkApprove = async () => {
@@ -397,7 +477,7 @@ export default function AdminDashboard() {
     if (selected.size === 0) return;
     if (
       !confirm(
-        `Reject and delete ${selected.size} submission(s)? This can't be undone.`
+        `Reject and delete ${selected.size} submission(s)? This can't be undone.`,
       )
     )
       return;
@@ -412,6 +492,28 @@ export default function AdminDashboard() {
       return;
     }
     setPending((p) => p.filter((f) => !selected.has(f.id)));
+    setSelected(new Set());
+  };
+
+  const bulkUnlist = async () => {
+    if (selected.size === 0) return;
+    if (
+      !confirm(
+        `Unlist and delete ${selected.size} fest(s)? They'll be removed from the site permanently — this can't be undone.`,
+      )
+    )
+      return;
+    setBulkBusy(true);
+    const { error } = await supabase
+      .from("fests")
+      .delete()
+      .in("id", Array.from(selected));
+    setBulkBusy(false);
+    if (error) {
+      alert("Bulk unlist failed. Please try again.");
+      return;
+    }
+    setApproved((p) => p.filter((f) => !selected.has(f.id)));
     setSelected(new Set());
   };
 
@@ -454,8 +556,45 @@ export default function AdminDashboard() {
         </button>
       </header>
 
+      {/* Tabs */}
+      <div
+        className="flex gap-1 px-4 pt-4 max-w-2xl mx-auto"
+        style={{ fontFamily: "var(--font-mono)" }}
+      >
+        <button
+          onClick={() => setTab("pending")}
+          className="text-xs px-3.5 py-1.5 rounded-full font-medium"
+          style={{
+            background:
+              tab === "pending" ? "rgba(124,58,237,0.15)" : "transparent",
+            color: tab === "pending" ? "#a78bfa" : "#666",
+            border:
+              tab === "pending"
+                ? "1px solid rgba(124,58,237,0.4)"
+                : "1px solid #2a2a2a",
+          }}
+        >
+          Pending Review{pendingLoaded ? ` (${pending.length})` : ""}
+        </button>
+        <button
+          onClick={() => setTab("approved")}
+          className="text-xs px-3.5 py-1.5 rounded-full font-medium"
+          style={{
+            background:
+              tab === "approved" ? "rgba(124,58,237,0.15)" : "transparent",
+            color: tab === "approved" ? "#a78bfa" : "#666",
+            border:
+              tab === "approved"
+                ? "1px solid rgba(124,58,237,0.4)"
+                : "1px solid #2a2a2a",
+          }}
+        >
+          Live{approvedLoaded ? ` (${approved.length})` : ""}
+        </button>
+      </div>
+
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {pending.length > 0 && (
+        {list.length > 0 && (
           <div
             className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2"
             style={{ fontFamily: "var(--font-mono)" }}
@@ -463,9 +602,11 @@ export default function AdminDashboard() {
             <span className="text-xs" style={{ color: "#666" }}>
               {selected.size > 0
                 ? `${selected.size} selected`
-                : `${pending.length} pending fest${pending.length !== 1 ? "s" : ""}`}
+                : tab === "pending"
+                  ? `${list.length} pending fest${list.length !== 1 ? "s" : ""}`
+                  : `${list.length} live fest${list.length !== 1 ? "s" : ""}`}
             </span>
-            {selected.size > 0 && (
+            {selected.size > 0 && tab === "pending" && (
               <div className="flex gap-2">
                 <button
                   onClick={bulkReject}
@@ -493,6 +634,22 @@ export default function AdminDashboard() {
                 </button>
               </div>
             )}
+            {selected.size > 0 && tab === "approved" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={bulkUnlist}
+                  disabled={bulkBusy}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                  style={{
+                    background: "rgba(239,68,68,0.1)",
+                    color: "#f87171",
+                    border: "1px solid rgba(239,68,68,0.35)",
+                  }}
+                >
+                  Unlist Selected
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -510,19 +667,22 @@ export default function AdminDashboard() {
           >
             {loadError}
           </p>
-        ) : pending.length === 0 ? (
+        ) : list.length === 0 ? (
           <p
             className="text-center py-16 text-sm"
             style={{ color: "#444", fontFamily: "var(--font-mono)" }}
           >
-            No pending fests. All caught up.
+            {tab === "pending"
+              ? "No pending fests. All caught up."
+              : "No live fests yet."}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {pending.map((fest) => (
+            {list.map((fest) => (
               <EditableFest
                 key={fest.id}
                 fest={fest}
+                mode={tab}
                 selected={selected.has(fest.id)}
                 onToggleSelect={() => toggleSelect(fest.id)}
                 onSaved={updateInList}
