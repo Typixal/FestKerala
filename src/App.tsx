@@ -905,10 +905,9 @@ export default function App() {
   const [district, setDistrict] = useState("All Districts");
   const savedScroll = useRef(0);
 
-  const todayStr = today();
-  const approved = MOCK_FESTS.filter(
-    (f) => f.status === "approved" && f.end_date >= todayStr,
-  );
+  // Mock data should remain visible while building the home page. When a live
+  // data source is connected, this can also filter out past events by date.
+  const approved = MOCK_FESTS.filter((f) => f.status === "approved");
   const filtered =
     district === "All Districts"
       ? approved
