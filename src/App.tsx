@@ -6,8 +6,14 @@ import {
   type DragEvent,
   type ChangeEvent,
 } from "react";
-import { MOCK_FESTS } from "./data";
-import { DISTRICTS, TAG_STYLES, type Fest, type Category } from "./types";
+import { supabase } from "./lib/supabase";
+import {
+  DISTRICTS,
+  TAG_STYLES,
+  CATEGORIES,
+  type Fest,
+  type Category,
+} from "./types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -31,10 +37,6 @@ function formatDateRange(start: string, end: string) {
 function buildColumns<T>(items: T[], cols: number): T[][] {
   const columns: T[][] = Array.from({ length: cols }, () => []);
   const heights = new Array(cols).fill(0);
-  // We don't know actual pixel heights, so we approximate by aspect ratio proxy.
-  // For a fair distribution without DOM access, assign round-robin but weight
-  // by cycling shortest first — here we just use a simple greedy approach
-  // by tracking logical "item count" per column (good enough without DOM).
   for (const item of items) {
     const shortest = heights.indexOf(Math.min(...heights));
     columns[shortest].push(item);
@@ -84,7 +86,6 @@ function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
       onClick={onClick}
     >
       <div className="relative w-full" style={{ minHeight: 180 }}>
-        {/* Poster image */}
         <img
           src={fest.poster_image_url}
           alt={fest.fest_name}
@@ -94,7 +95,6 @@ function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
         />
         {!loaded && <div className="absolute inset-0 bg-panel animate-pulse" />}
 
-        {/* Fixed gradient overlay: transparent → 85% black, bottom 50% */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -103,14 +103,12 @@ function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
           }}
         />
 
-        {/* Tag pills top-right */}
         <div className="absolute top-2.5 right-2.5 flex flex-wrap gap-1 justify-end max-w-[75%]">
           {fest.tags.map((tag) => (
             <TagPill key={tag} tag={tag} />
           ))}
         </div>
 
-        {/* Bottom metadata */}
         <div className="absolute bottom-0 left-0 right-0 p-3.5">
           <p
             className="text-[10.5px] text-[#888] mb-1 truncate"
@@ -168,13 +166,11 @@ function MasonryGrid({
 // ─── DetailModal ────────────────────────────────────────────────────────────
 
 function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
-  // Close on backdrop click
   const backdropRef = useRef<HTMLDivElement>(null);
   const handleBackdrop = (e: React.MouseEvent) => {
     if (e.target === backdropRef.current) onClose();
   };
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -194,7 +190,6 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
           overflowY: "auto",
         }}
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full"
@@ -216,7 +211,6 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
           </svg>
         </button>
 
-        {/* Poster */}
         <div
           className="relative"
           style={{ maxHeight: 360, overflow: "hidden" }}
@@ -236,7 +230,6 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
           />
         </div>
 
-        {/* Content */}
         <div className="px-5 pb-6 pt-2">
           <div className="flex flex-wrap gap-1.5 mb-3">
             {fest.tags.map((tag) => (
@@ -324,6 +317,38 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
   );
 }
 
+// ─── Field (shared form field wrapper — must live outside PostForm so it's
+// not redefined on every render, which would remount inputs and drop focus) ─
+
+function Field({
+  id,
+  label,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p
+          className="text-red-400 text-xs mt-1"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── PostForm ───────────────────────────────────────────────────────────────
 
 type FormState = {
@@ -335,6 +360,7 @@ type FormState = {
   registration_link: string;
   poster_file: File | null;
   poster_preview: string;
+  tags: Category[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -346,6 +372,7 @@ const EMPTY_FORM: FormState = {
   registration_link: "",
   poster_file: null,
   poster_preview: "",
+  tags: [],
 };
 
 function PostForm({ onClose }: { onClose: () => void }) {
@@ -354,12 +381,24 @@ function PostForm({ onClose }: { onClose: () => void }) {
     Partial<Record<keyof FormState, string>>
   >({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const set = (k: keyof FormState, v: string | File | null) => {
+  const set = (k: keyof FormState, v: string | File | null | Category[]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k]: undefined }));
+  };
+
+  const toggleTag = (tag: Category) => {
+    setForm((f) => ({
+      ...f,
+      tags: f.tags.includes(tag)
+        ? f.tags.filter((t) => t !== tag)
+        : [...f.tags, tag],
+    }));
+    setErrors((e) => ({ ...e, tags: undefined }));
   };
 
   const handleFile = (file: File | undefined | null) => {
@@ -401,26 +440,63 @@ function PostForm({ onClose }: { onClose: () => void }) {
         e.registration_link = "Enter a valid URL (e.g. https://…)";
       }
     }
+    if (!form.poster_file) e.poster_file = "Please upload a poster image.";
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
-    // In production this would POST to Supabase; for now persist to localStorage
-    const pending = JSON.parse(localStorage.getItem("fk_pending") || "[]");
-    pending.push({
-      ...form,
-      id: Date.now().toString(),
-      status: "pending",
-      created_at: new Date().toISOString(),
-    });
-    localStorage.setItem("fk_pending", JSON.stringify(pending));
-    setSubmitted(true);
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const file = form.poster_file!;
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+
+      // 1. Upload poster to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("posters")
+        .upload(path, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("posters").getPublicUrl(path);
+
+      // 2. Insert the fest row. status is forced to 'pending' here in the
+      // client as defense-in-depth; the database's RLS policy enforces the
+      // same rule server-side regardless of what a client sends.
+      const { error: insertError } = await supabase.from("fests").insert({
+        fest_name: form.fest_name.trim(),
+        college_name: form.college_name.trim(),
+        district: form.district,
+        start_date: form.start_date,
+        end_date: form.end_date,
+        registration_link: form.registration_link.trim(),
+        poster_image_url: publicUrl,
+        tags: form.tags,
+        status: "pending",
+      });
+
+      if (insertError) throw insertError;
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setSubmitError(
+        "Something went wrong submitting your fest. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -485,33 +561,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
     if (e.target === backdropRef.current) onClose();
   };
 
-  const Field = ({
-    id,
-    label,
-    error,
-    children,
-  }: {
-    id: string;
-    label: string;
-    error?: string;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      <label htmlFor={id} className="field-label">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p
-          className="text-red-400 text-xs mt-1"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {error}
-        </p>
-      )}
-    </div>
-  );
-
   return (
     <div
       ref={backdropRef}
@@ -528,7 +577,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
         className="relative w-full max-w-lg rounded-2xl"
         style={{ background: "#111", border: "1px solid #2a2a2a" }}
       >
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: "1px solid #1e1e1e" }}
@@ -720,6 +768,31 @@ function PostForm({ onClose }: { onClose: () => void }) {
             </Field>
           </div>
 
+          {/* Tags */}
+          <div>
+            <label className="field-label">Category Tags</label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {CATEGORIES.map((tag) => {
+                const active = form.tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                      active
+                        ? TAG_STYLES[tag]
+                        : "bg-transparent text-[#666] border-border"
+                    }`}
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <Field
             id="registration_link"
             label="Registration / Event Link *"
@@ -735,12 +808,28 @@ function PostForm({ onClose }: { onClose: () => void }) {
             />
           </Field>
 
+          {submitError && (
+            <p
+              className="text-red-400 text-xs text-center"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {submitError}
+            </p>
+          )}
+
           <button
             type="submit"
+            disabled={submitting}
             className="btn-glow w-full mt-1"
-            style={{ padding: "12px", borderRadius: 12, fontSize: 14 }}
+            style={{
+              padding: "12px",
+              borderRadius: 12,
+              fontSize: 14,
+              opacity: submitting ? 0.6 : 1,
+              cursor: submitting ? "not-allowed" : "pointer",
+            }}
           >
-            Submit for Review
+            {submitting ? "Submitting…" : "Submit for Review"}
           </button>
 
           <p
@@ -780,7 +869,6 @@ function Header({
         borderBottom: scrolled ? "1px solid #1e1e1e" : "1px solid transparent",
       }}
     >
-      {/* Wordmark */}
       <a
         href="#"
         className="flex items-center gap-2.5"
@@ -811,7 +899,6 @@ function Header({
         </span>
       </a>
 
-      {/* Right side — desktop only */}
       <div className="hidden sm:flex items-center gap-4">
         <span
           style={{
@@ -903,15 +990,39 @@ export default function App() {
   const [view, setView] = useState<View>("home");
   const [selectedFest, setSelectedFest] = useState<Fest | null>(null);
   const [district, setDistrict] = useState("All Districts");
+  const [fests, setFests] = useState<Fest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const savedScroll = useRef(0);
 
-  // Mock data should remain visible while building the home page. When a live
-  // data source is connected, this can also filter out past events by date.
-  const approved = MOCK_FESTS.filter((f) => f.status === "approved");
+  const loadFests = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    const todayStr = today();
+    const { data, error } = await supabase
+      .from("fests")
+      .select("*")
+      .eq("status", "approved")
+      .gte("end_date", todayStr) // auto-hide expired fests
+      .order("start_date", { ascending: true });
+
+    if (error) {
+      console.error(error);
+      setLoadError("Couldn't load fests right now. Please refresh.");
+    } else {
+      setFests((data ?? []) as Fest[]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadFests();
+  }, [loadFests]);
+
   const filtered =
     district === "All Districts"
-      ? approved
-      : approved.filter((f) => f.district === district);
+      ? fests
+      : fests.filter((f) => f.district === district);
 
   const openPost = () => {
     savedScroll.current = window.scrollY;
@@ -920,6 +1031,9 @@ export default function App() {
   const closePost = () => {
     setView("home");
     requestAnimationFrame(() => window.scrollTo(0, savedScroll.current));
+    // Refresh in case a fest was approved elsewhere while the form was open,
+    // and to keep behavior predictable — cheap since the query is indexed.
+    loadFests();
   };
 
   const openDetail = (fest: Fest) => {
@@ -931,7 +1045,6 @@ export default function App() {
     requestAnimationFrame(() => window.scrollTo(0, savedScroll.current));
   }, []);
 
-  // Lock body scroll when modal open
   useEffect(() => {
     document.body.style.overflow =
       selectedFest || view === "post" ? "hidden" : "";
@@ -942,7 +1055,7 @@ export default function App() {
 
   return (
     <div style={{ backgroundColor: "#0a0a0a", minHeight: "100vh" }}>
-      <Header onPostClick={openPost} festCount={approved.length} />
+      <Header onPostClick={openPost} festCount={fests.length} />
 
       {/* Hero */}
       <div className="pt-25 pb-6 px-4 text-center">
@@ -984,7 +1097,29 @@ export default function App() {
 
       {/* Grid */}
       <div className="px-3 pt-4 pb-24 max-w-6xl mx-auto">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div
+            className="text-center py-24"
+            style={{
+              color: "#444",
+              fontFamily: "var(--font-mono)",
+              fontSize: 14,
+            }}
+          >
+            Loading fests…
+          </div>
+        ) : loadError ? (
+          <div
+            className="text-center py-24"
+            style={{
+              color: "#c96",
+              fontFamily: "var(--font-mono)",
+              fontSize: 14,
+            }}
+          >
+            {loadError}
+          </div>
+        ) : filtered.length === 0 ? (
           <div
             className="text-center py-24"
             style={{
@@ -1016,12 +1151,10 @@ export default function App() {
         </svg>
       </button>
 
-      {/* Detail modal */}
       {selectedFest && (
         <DetailModal fest={selectedFest} onClose={closeDetail} />
       )}
 
-      {/* Post form modal */}
       {view === "post" && <PostForm onClose={closePost} />}
     </div>
   );
