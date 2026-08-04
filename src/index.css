@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --color-void: #0a0a0b;
+  --color-surface: #111113;
+  --color-panel: #18181b;
+  --color-border: #27272a;
+  --color-muted: #52525b;
+  --color-ghost: #3f3f46;
+  --color-text: #fafafa;
+  --color-subtext: #a1a1aa;
+  --color-accent: #e879f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0a0a0b;
+  color: #fafafa;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.masonry-grid {
+  columns: 3;
+  column-gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .masonry-grid {
+    columns: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .masonry-grid {
+    columns: 1;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 12px;
+}
+
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(232, 121, 249, 0.15);
+}
+
+.filter-pill {
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+select option {
+  background-color: #18181b;
+  color: #fafafa;
+}

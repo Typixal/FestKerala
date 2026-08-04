@@ -1,0 +1,10 @@
+{
+  "description": "Discover and explore vibrant college fest posters across Kerala with easy district filtering and infinite scroll for seamless event browsing.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
