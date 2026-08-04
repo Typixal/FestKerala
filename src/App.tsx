@@ -1,491 +1,696 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, type DragEvent, type ChangeEvent } from "react"
+import { MOCK_FESTS } from "./data"
+import { DISTRICTS, TAG_STYLES, type Fest, type Category } from "./types"
 
-const DISTRICTS = [
-  "All Districts",
-  "Thiruvananthapuram",
-  "Kollam",
-  "Pathanamthitta",
-  "Alappuzha",
-  "Kottayam",
-  "Idukki",
-  "Ernakulam",
-  "Thrissur",
-  "Palakkad",
-  "Malappuram",
-  "Kozhikode",
-  "Wayanad",
-  "Kannur",
-  "Kasaragod",
-]
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-interface Fest {
-  id: number
-  name: string
-  college: string
-  district: string
-  date: string
-  tags: string[]
-  img: string
-  aspectRatio: "tall" | "square" | "wide"
+function today() {
+  return new Date().toISOString().slice(0, 10)
 }
 
-const FESTS: Fest[] = [
-  {
-    id: 1,
-    name: "Dhwani 2025",
-    college: "Govt. Engineering College, Thrissur",
-    district: "Thrissur",
-    date: "Feb 14–16",
-    tags: ["Music", "Tech"],
-    img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=900&fit=crop&auto=format",
-    aspectRatio: "tall",
-  },
-  {
-    id: 2,
-    name: "Kalolsavam",
-    college: "Mar Ivanios College",
-    district: "Thiruvananthapuram",
-    date: "Jan 20–22",
-    tags: ["Arts", "Dance"],
-    img: "https://images.unsplash.com/photo-1463592177119-bab2a00f3ccb?w=600&h=600&fit=crop&auto=format",
-    aspectRatio: "square",
-  },
-  {
-    id: 3,
-    name: "Thejus Fest",
-    college: "NIT Calicut",
-    district: "Kozhikode",
-    date: "Mar 5–7",
-    tags: ["Tech", "Hackathon"],
-    img: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=700&h=480&fit=crop&auto=format",
-    aspectRatio: "wide",
-  },
-  {
-    id: 4,
-    name: "Revelations",
-    college: "College of Engineering, Pune (Kerala Chapter)",
-    district: "Ernakulam",
-    date: "Feb 28",
-    tags: ["Culture", "Fashion"],
-    img: "https://images.unsplash.com/photo-1652111132299-ff1056c87b35?w=600&h=900&fit=crop&auto=format",
-    aspectRatio: "tall",
-  },
-  {
-    id: 5,
-    name: "Spectrum",
-    college: "MG University",
-    district: "Kottayam",
-    date: "Mar 12–13",
-    tags: ["Music", "Dance"],
-    img: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=400&fit=crop&auto=format",
-    aspectRatio: "wide",
-  },
-  {
-    id: 6,
-    name: "Nrityananda",
-    college: "Sree Sankara College",
-    district: "Ernakulam",
-    date: "Apr 2",
-    tags: ["Classical Dance"],
-    img: "https://images.unsplash.com/photo-1764014792668-bc484714744f?w=600&h=900&fit=crop&auto=format",
-    aspectRatio: "tall",
-  },
-  {
-    id: 7,
-    name: "Tathva",
-    college: "NIT Calicut",
-    district: "Kozhikode",
-    date: "Oct 10–12",
-    tags: ["Tech", "Science"],
-    img: "https://images.unsplash.com/photo-1563841930606-67e2bce48b78?w=600&h=600&fit=crop&auto=format",
-    aspectRatio: "square",
-  },
-  {
-    id: 8,
-    name: "Colours of Kerala",
-    college: "Calicut University",
-    district: "Malappuram",
-    date: "Nov 3–5",
-    tags: ["Culture", "Arts"],
-    img: "https://images.unsplash.com/photo-1756382616831-998e8baf9675?w=600&h=400&fit=crop&auto=format",
-    aspectRatio: "wide",
-  },
-  {
-    id: 9,
-    name: "Apogee",
-    college: "BITS Pilani (KL Connect)",
-    district: "Thrissur",
-    date: "Mar 18–20",
-    tags: ["Tech", "Robotics"],
-    img: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=600&h=900&fit=crop&auto=format",
-    aspectRatio: "tall",
-  },
-  {
-    id: 10,
-    name: "Soorya Festival",
-    college: "KSICTA",
-    district: "Thiruvananthapuram",
-    date: "Dec 20–Jan 5",
-    tags: ["Classical", "Music"],
-    img: "https://images.unsplash.com/photo-1711804224670-82814a88be82?w=600&h=600&fit=crop&auto=format",
-    aspectRatio: "square",
-  },
-  {
-    id: 11,
-    name: "Mavericks",
-    college: "CUSAT",
-    district: "Ernakulam",
-    date: "Feb 7–8",
-    tags: ["Business", "Debate"],
-    img: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=700&h=460&fit=crop&auto=format",
-    aspectRatio: "wide",
-  },
-  {
-    id: 12,
-    name: "Prathibha",
-    college: "Kerala University",
-    district: "Thiruvananthapuram",
-    date: "Jan 30–Feb 1",
-    tags: ["Arts", "Literature"],
-    img: "https://images.unsplash.com/photo-1712192682756-ae5b3a8e7508?w=600&h=900&fit=crop&auto=format",
-    aspectRatio: "tall",
-  },
-]
-
-const TAG_COLORS: Record<string, string> = {
-  // Fixed category system
-  Tech:             "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-  Music:            "bg-violet-500/20 text-violet-300 border-violet-500/40",
-  Arts:             "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  Culture:          "bg-rose-500/20 text-rose-300 border-rose-500/40",
-  Dance:            "bg-pink-500/20 text-pink-300 border-pink-500/40",
-  Business:         "bg-green-500/20 text-green-300 border-green-500/40",
-  // Subcategories mapped to their parent
-  Hackathon:        "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-  Robotics:         "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-  Science:          "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-  Classical:        "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  Literature:       "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  Fashion:          "bg-rose-500/20 text-rose-300 border-rose-500/40",
-  "Classical Dance":"bg-pink-500/20 text-pink-300 border-pink-500/40",
-  Debate:           "bg-green-500/20 text-green-300 border-green-500/40",
+function formatDateRange(start: string, end: string) {
+  const s = new Date(start + "T00:00:00")
+  const e = new Date(end + "T00:00:00")
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }
+  if (start === end) return s.toLocaleDateString("en-IN", { ...opts, year: "numeric" })
+  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+    return `${s.getDate()}–${e.getDate()} ${s.toLocaleDateString("en-IN", { month: "short", year: "numeric" })}`
+  }
+  return `${s.toLocaleDateString("en-IN", opts)} – ${e.toLocaleDateString("en-IN", { ...opts, year: "numeric" })}`
 }
 
-function getTagClass(tag: string) {
-  return TAG_COLORS[tag] ?? "bg-zinc-700/40 text-zinc-300 border-zinc-600/40"
+// Balanced masonry: distribute cards into N columns by shortest-column-first
+function buildColumns<T>(items: T[], cols: number): T[][] {
+  const columns: T[][] = Array.from({ length: cols }, () => [])
+  const heights = new Array(cols).fill(0)
+  // We don't know actual pixel heights, so we approximate by aspect ratio proxy.
+  // For a fair distribution without DOM access, assign round-robin but weight
+  // by cycling shortest first — here we just use a simple greedy approach
+  // by tracking logical "item count" per column (good enough without DOM).
+  for (const item of items) {
+    const shortest = heights.indexOf(Math.min(...heights))
+    columns[shortest].push(item)
+    heights[shortest] += 1
+  }
+  return columns
 }
 
-function aspectClass(ratio: Fest["aspectRatio"]) {
-  if (ratio === "tall") return "aspect-[2/3]"
-  if (ratio === "square") return "aspect-square"
-  return "aspect-[16/9]"
+function useColumns() {
+  const getCount = () => {
+    if (typeof window === "undefined") return 3
+    if (window.innerWidth < 640) return 1
+    if (window.innerWidth < 1024) return 2
+    return 3
+  }
+  const [cols, setCols] = useState(getCount)
+  useEffect(() => {
+    const handler = () => setCols(getCount())
+    window.addEventListener("resize", handler)
+    return () => window.removeEventListener("resize", handler)
+  }, [])
+  return cols
 }
 
-function FestCard({ fest }: { fest: Fest }) {
+// ─── TagPill ────────────────────────────────────────────────────────────────
+
+function TagPill({ tag }: { tag: Category }) {
+  return (
+    <span
+      className={`inline-block text-[10.5px] font-medium px-2.5 py-0.5 rounded-full border ${TAG_STYLES[tag]}`}
+      style={{ fontFamily: "var(--font-mono)" }}
+    >
+      {tag}
+    </span>
+  )
+}
+
+// ─── FestCard ───────────────────────────────────────────────────────────────
+
+function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
   const [loaded, setLoaded] = useState(false)
 
-
   return (
-    <div className="masonry-item">
-      <div
-        className="card-hover relative overflow-hidden rounded-xl bg-zinc-900 cursor-pointer group"
-        style={{ border: "1px solid #27272a" }}
-      >
-        <div className={`relative ${aspectClass(fest.aspectRatio)} bg-zinc-800`}>
-          <img
-            src={fest.img}
-            alt={`${fest.name} at ${fest.college}`}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
-            onLoad={() => setLoaded(true)}
-          />
-          {/* Gradient overlay — bottom 50%, black 0→85% */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 25%, rgba(0,0,0,0) 50%)",
-            }}
-          />
+    <div
+      className="fest-card relative overflow-hidden rounded-xl cursor-pointer mb-3 bg-[#111]"
+      style={{ border: "1px solid #1e1e1e" }}
+      onClick={onClick}
+    >
+      <div className="relative w-full" style={{ minHeight: 180 }}>
+        {/* Poster image */}
+        <img
+          src={fest.poster_image_url}
+          alt={fest.fest_name}
+          className={`w-full block object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+          style={{ maxHeight: 480 }}
+          onLoad={() => setLoaded(true)}
+        />
+        {!loaded && <div className="absolute inset-0 bg-[#1a1a1a] animate-pulse" />}
 
-          {/* Tags top-right */}
-          <div className="absolute top-3 right-3 flex flex-wrap gap-1 justify-end">
-            {fest.tags.map((tag) => (
-              <span
-                key={tag}
-                className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border backdrop-blur-sm ${getTagClass(tag)}`}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+        {/* Fixed gradient overlay: transparent → 85% black, bottom 50% */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 28%, rgba(0,0,0,0) 50%)",
+          }}
+        />
 
-          {/* Bottom content */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p
-              className="text-[11px] text-zinc-400 mb-1 truncate"
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              {fest.district} · {fest.date}
-            </p>
-            <h3
-              className="text-white text-xl leading-tight mb-0.5"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {fest.name}
-            </h3>
-            <p className="text-zinc-400 text-xs truncate">{fest.college}</p>
-          </div>
+        {/* Tag pills top-right */}
+        <div className="absolute top-2.5 right-2.5 flex flex-wrap gap-1 justify-end max-w-[75%]">
+          {fest.tags.map((tag) => (
+            <TagPill key={tag} tag={tag} />
+          ))}
         </div>
 
-        {/* Hover overlay CTA */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <span
-            className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full shadow-xl"
-            style={{ fontFamily: "var(--font-sans)" }}
+        {/* Bottom metadata */}
+        <div className="absolute bottom-0 left-0 right-0 p-3.5">
+          <p
+            className="text-[10.5px] text-[#888] mb-1 truncate"
+            style={{ fontFamily: "var(--font-mono)" }}
           >
-            View Fest →
-          </span>
+            {fest.district} · {formatDateRange(fest.start_date, fest.end_date)}
+          </p>
+          <h3
+            className="text-white font-bold text-[17px] leading-snug mb-0.5 truncate"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {fest.fest_name}
+          </h3>
+          <p
+            className="text-[11px] truncate"
+            style={{ color: "#888", fontFamily: "var(--font-mono)" }}
+          >
+            {fest.college_name}
+          </p>
         </div>
       </div>
     </div>
   )
 }
 
-export default function App() {
-  const [district, setDistrict] = useState("All Districts")
-  const [navSolid, setNavSolid] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(12)
-  const [cursor, setCursor] = useState({ x: -999, y: -999 })
-  const [overContent, setOverContent] = useState(false)
-  const sentinelRef = useRef<HTMLDivElement>(null)
+// ─── MasonryGrid ────────────────────────────────────────────────────────────
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setCursor({ x: e.clientX, y: e.clientY })
-  }, [])
+function MasonryGrid({ fests, onCardClick }: { fests: Fest[]; onCardClick: (f: Fest) => void }) {
+  const cols = useColumns()
+  const columns = buildColumns(fests, cols)
+
+  return (
+    <div className="flex gap-3 items-start">
+      {columns.map((col, ci) => (
+        <div key={ci} className="flex-1 min-w-0">
+          {col.map((fest) => (
+            <FestCard key={fest.id} fest={fest} onClick={() => onCardClick(fest)} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── DetailModal ────────────────────────────────────────────────────────────
+
+function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
+  // Close on backdrop click
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const handleBackdrop = (e: React.MouseEvent) => {
+    if (e.target === backdropRef.current) onClose()
+  }
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [onClose])
+
+  return (
+    <div ref={backdropRef} className="modal-backdrop" onClick={handleBackdrop}>
+      <div
+        className="relative w-full max-w-lg rounded-2xl overflow-hidden"
+        style={{ background: "#111", border: "1px solid #2a2a2a", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full"
+          style={{ background: "rgba(0,0,0,0.6)", color: "#aaa", border: "1px solid #333", cursor: "pointer" }}
+          aria-label="Close"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        </button>
+
+        {/* Poster */}
+        <div className="relative" style={{ maxHeight: 360, overflow: "hidden" }}>
+          <img
+            src={fest.poster_image_url}
+            alt={fest.fest_name}
+            className="w-full object-cover block"
+            style={{ maxHeight: 360 }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.3) 40%, transparent 70%)" }}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="px-5 pb-6 pt-2">
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {fest.tags.map((tag) => <TagPill key={tag} tag={tag} />)}
+          </div>
+
+          <h2
+            className="text-white font-bold text-2xl leading-tight mb-1"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {fest.fest_name}
+          </h2>
+
+          <p className="text-[13px] mb-4" style={{ color: "#999", fontFamily: "var(--font-mono)" }}>
+            {fest.college_name}
+          </p>
+
+          <div className="flex flex-col gap-2 mb-6">
+            <div className="flex items-center gap-2">
+              <span style={{ color: "#555", fontFamily: "var(--font-mono)", fontSize: 11, width: 60 }}>DATE</span>
+              <span style={{ color: "#ccc", fontFamily: "var(--font-mono)", fontSize: 13 }}>
+                {formatDateRange(fest.start_date, fest.end_date)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span style={{ color: "#555", fontFamily: "var(--font-mono)", fontSize: 11, width: 60 }}>DISTRICT</span>
+              <span style={{ color: "#ccc", fontFamily: "var(--font-mono)", fontSize: 13 }}>{fest.district}</span>
+            </div>
+          </div>
+
+          <a
+            href={fest.registration_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-glow block text-center w-full"
+            style={{ display: "block", textDecoration: "none", padding: "12px 20px", borderRadius: 12, fontSize: 14 }}
+          >
+            Register / Event Link →
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── PostForm ───────────────────────────────────────────────────────────────
+
+type FormState = {
+  fest_name: string
+  college_name: string
+  district: string
+  start_date: string
+  end_date: string
+  registration_link: string
+  poster_file: File | null
+  poster_preview: string
+}
+
+const EMPTY_FORM: FormState = {
+  fest_name: "",
+  college_name: "",
+  district: "",
+  start_date: "",
+  end_date: "",
+  registration_link: "",
+  poster_file: null,
+  poster_preview: "",
+}
+
+function PostForm({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [submitted, setSubmitted] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const set = (k: keyof FormState, v: string | File | null) => {
+    setForm((f) => ({ ...f, [k]: v }))
+    setErrors((e) => ({ ...e, [k]: undefined }))
+  }
+
+  const handleFile = (file: File | undefined | null) => {
+    if (!file) return
+    if (!file.type.startsWith("image/")) { setErrors((e) => ({ ...e, poster_file: "Please upload an image file." })); return }
+    if (file.size > 5 * 1024 * 1024) { setErrors((e) => ({ ...e, poster_file: "File must be under 5 MB." })); return }
+    const url = URL.createObjectURL(file)
+    setForm((f) => ({ ...f, poster_file: file, poster_preview: url }))
+    setErrors((e) => ({ ...e, poster_file: undefined }))
+  }
+
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); setDragOver(false)
+    handleFile(e.dataTransfer.files[0])
+  }
+
+  const validate = () => {
+    const e: typeof errors = {}
+    if (!form.fest_name.trim()) e.fest_name = "Required"
+    if (!form.college_name.trim()) e.college_name = "Required"
+    if (!form.district) e.district = "Select a district"
+    if (!form.start_date) e.start_date = "Required"
+    if (!form.end_date) e.end_date = "Required"
+    if (form.start_date && form.end_date && form.end_date < form.start_date) e.end_date = "End date must be after start date"
+    if (!form.registration_link.trim()) {
+      e.registration_link = "Required"
+    } else {
+      try { new URL(form.registration_link) } catch { e.registration_link = "Enter a valid URL (e.g. https://…)" }
+    }
+    return e
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    // In production this would POST to Supabase; for now persist to localStorage
+    const pending = JSON.parse(localStorage.getItem("fk_pending") || "[]")
+    pending.push({ ...form, id: Date.now().toString(), status: "pending", created_at: new Date().toISOString() })
+    localStorage.setItem("fk_pending", JSON.stringify(pending))
+    setSubmitted(true)
+  }
 
   useEffect(() => {
-    window.addEventListener("mousemove", handleMouseMove, { passive: true })
-    return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [handleMouseMove])
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [onClose])
 
-  const filtered =
-    district === "All Districts"
-      ? FESTS
-      : FESTS.filter((f) => f.district === district)
-
-  const visible = filtered.slice(0, visibleCount)
-
-  // Solidify nav on scroll
-  useEffect(() => {
-    const onScroll = () => setNavSolid(window.scrollY > 20)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  // Infinite scroll sentinel
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) setVisibleCount((c) => c + 6)
-      },
-      { threshold: 0.1 }
+  if (submitted) {
+    return (
+      <div className="modal-backdrop">
+        <div
+          className="w-full max-w-md rounded-2xl p-8 text-center"
+          style={{ background: "#111", border: "1px solid #2a2a2a" }}
+        >
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.4)" }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M4 11L9 16L18 6" stroke="#a78bfa" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h2 className="text-white font-bold text-xl mb-2" style={{ fontFamily: "var(--font-display)" }}>Submitted!</h2>
+          <p className="text-sm mb-6" style={{ color: "#888", fontFamily: "var(--font-mono)", lineHeight: 1.6 }}>
+            Your fest is pending review —<br />we'll list it on FestKerala soon.
+          </p>
+          <button className="btn-glow" onClick={onClose}>Back to Home</button>
+        </div>
+      </div>
     )
-    obs.observe(el)
-    return () => obs.disconnect()
+  }
+
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const handleBackdrop = (e: React.MouseEvent) => { if (e.target === backdropRef.current) onClose() }
+
+  const Field = ({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) => (
+    <div>
+      <label htmlFor={id} className="field-label">{label}</label>
+      {children}
+      {error && <p className="text-red-400 text-xs mt-1" style={{ fontFamily: "var(--font-mono)" }}>{error}</p>}
+    </div>
+  )
+
+  return (
+    <div ref={backdropRef} className="modal-backdrop" style={{ alignItems: "flex-start", paddingTop: 24, paddingBottom: 24, overflowY: "auto" }} onClick={handleBackdrop}>
+      <div
+        className="relative w-full max-w-lg rounded-2xl"
+        style={{ background: "#111", border: "1px solid #2a2a2a" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #1e1e1e" }}>
+          <h2 className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-display)" }}>Post an Event</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full"
+            style={{ background: "#1a1a1a", color: "#888", border: "1px solid #2a2a2a", cursor: "pointer" }}
+            aria-label="Close"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-5">
+          {/* Poster upload */}
+          <div>
+            <label className="field-label">Poster Image</label>
+            <div
+              className={`dropzone ${dragOver ? "active" : ""} flex flex-col items-center justify-center gap-2 py-7`}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+            >
+              {form.poster_preview ? (
+                <img src={form.poster_preview} alt="Preview" className="max-h-32 rounded-lg object-contain" />
+              ) : (
+                <>
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ color: "#555" }}>
+                    <rect x="2" y="5" width="24" height="18" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+                    <circle cx="9.5" cy="11.5" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M2 19l6-5 4 4 4-3 8 6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                  </svg>
+                  <p className="text-sm" style={{ color: "#666", fontFamily: "var(--font-mono)" }}>
+                    Drag & drop or <span style={{ color: "#a78bfa" }}>browse</span>
+                  </p>
+                  <p className="text-xs" style={{ color: "#444", fontFamily: "var(--font-mono)" }}>JPG, PNG, WEBP · max 5 MB</p>
+                </>
+              )}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleFile(e.target.files?.[0])}
+            />
+            {errors.poster_file && <p className="text-red-400 text-xs mt-1" style={{ fontFamily: "var(--font-mono)" }}>{errors.poster_file}</p>}
+          </div>
+
+          {/* Text fields */}
+          <Field id="fest_name" label="Fest Name *" error={errors.fest_name}>
+            <input
+              id="fest_name"
+              className="field"
+              placeholder="e.g. Dhwani 2025"
+              value={form.fest_name}
+              onChange={(e) => set("fest_name", e.target.value)}
+            />
+          </Field>
+
+          <Field id="college_name" label="College Name *" error={errors.college_name}>
+            <input
+              id="college_name"
+              className="field"
+              placeholder="e.g. NIT Calicut"
+              value={form.college_name}
+              onChange={(e) => set("college_name", e.target.value)}
+            />
+          </Field>
+
+          <Field id="district" label="District *" error={errors.district}>
+            <select
+              id="district"
+              className="field"
+              value={form.district}
+              onChange={(e) => set("district", e.target.value)}
+            >
+              <option value="" disabled>Select district…</option>
+              {DISTRICTS.slice(1).map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field id="start_date" label="Start Date *" error={errors.start_date}>
+              <input
+                id="start_date"
+                type="date"
+                className="field"
+                min={today()}
+                value={form.start_date}
+                onChange={(e) => set("start_date", e.target.value)}
+                style={{ colorScheme: "dark" }}
+              />
+            </Field>
+            <Field id="end_date" label="End Date *" error={errors.end_date}>
+              <input
+                id="end_date"
+                type="date"
+                className="field"
+                min={form.start_date || today()}
+                value={form.end_date}
+                onChange={(e) => set("end_date", e.target.value)}
+                style={{ colorScheme: "dark" }}
+              />
+            </Field>
+          </div>
+
+          <Field id="registration_link" label="Registration / Event Link *" error={errors.registration_link}>
+            <input
+              id="registration_link"
+              type="url"
+              className="field"
+              placeholder="https://…"
+              value={form.registration_link}
+              onChange={(e) => set("registration_link", e.target.value)}
+            />
+          </Field>
+
+          <button type="submit" className="btn-glow w-full mt-1" style={{ padding: "12px", borderRadius: 12, fontSize: 14 }}>
+            Submit for Review
+          </button>
+
+          <p className="text-center text-xs" style={{ color: "#555", fontFamily: "var(--font-mono)" }}>
+            No login required · reviewed within 24h
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Header ─────────────────────────────────────────────────────────────────
+
+function Header({ onPostClick, festCount }: { onPostClick: () => void; festCount: number }) {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 8)
+    window.addEventListener("scroll", fn, { passive: true })
+    return () => window.removeEventListener("scroll", fn)
   }, [])
 
   return (
-    <div style={{ backgroundColor: "#0a0a0b", minHeight: "100vh" }}>
-      {/* Background cursor glow — only visible outside card content */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-300"
-        style={{ opacity: overContent ? 0 : 1 }}
-      >
+    <header
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-[54px] transition-all duration-300"
+      style={{
+        background: scrolled ? "rgba(10,10,10,0.92)" : "rgba(10,10,10,0.6)",
+        backdropFilter: "blur(14px)",
+        borderBottom: scrolled ? "1px solid #1e1e1e" : "1px solid transparent",
+      }}
+    >
+      {/* Wordmark */}
+      <a href="#" className="flex items-center gap-2.5" style={{ textDecoration: "none" }}>
         <div
-          style={{
-            position: "absolute",
-            left: cursor.x,
-            top: cursor.y,
-            width: 520,
-            height: 520,
-            transform: "translate(-50%, -50%)",
-            background:
-              "radial-gradient(circle, rgba(168,85,247,0.09) 0%, rgba(232,121,249,0.04) 40%, transparent 70%)",
-            borderRadius: "50%",
-            pointerEvents: "none",
-            transition: "left 0.12s ease-out, top 0.12s ease-out",
-          }}
-        />
-      </div>
-      {/* NAV */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 h-14 transition-all duration-300"
-        style={{
-          backgroundColor: navSolid ? "rgba(10,10,11,0.9)" : "transparent",
-          backdropFilter: navSolid ? "blur(12px)" : "none",
-          borderBottom: navSolid ? "1px solid #27272a" : "1px solid transparent",
-        }}
-      >
-        <a href="#" className="flex items-center gap-2 group">
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #a855f7, #e879f9)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M7 1.5L11.5 4.25V9.75L7 12.5L2.5 9.75V4.25L7 1.5Z"
-                stroke="white"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-              />
-              <circle cx="7" cy="7" r="1.5" fill="white" />
-            </svg>
-          </div>
-          <span
-            className="text-white text-xl tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            FestKerala
-          </span>
-        </a>
-
-        <div className="flex items-center gap-3">
-          <span className="text-zinc-500 text-xs hidden sm:block" style={{ fontFamily: "var(--font-mono)" }}>
-            {FESTS.length} fests listed
-          </span>
-          <button
-            className="text-xs font-medium px-4 py-2 rounded-full transition-all duration-200"
-            style={{
-              background: "linear-gradient(135deg, #a855f7, #e879f9)",
-              color: "white",
-              fontFamily: "var(--font-sans)",
-            }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.opacity = "0.85"
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.opacity = "1"
-            }}
-          >
-            Submit Fest
-          </button>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <div className="pt-32 pb-10 px-6 text-center">
-        <p
-          className="text-[11px] tracking-[0.2em] uppercase text-zinc-500 mb-4"
-          style={{ fontFamily: "var(--font-mono)" }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}
         >
-          Kerala · College Fests · 2025
-        </p>
-        <h1
-          className="text-6xl md:text-8xl text-white leading-none mb-4"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Discover the{" "}
-          <em className="not-italic" style={{ color: "#e879f9" }}>
-            Fests
-          </em>
-        </h1>
-        <p className="text-zinc-400 text-base max-w-md mx-auto" style={{ fontFamily: "var(--font-sans)" }}>
-          Every cultural, technical, and artistic fest happening across Kerala's college campuses.
-        </p>
-      </div>
-
-      {/* FILTER BAR */}
-      <div
-        className="sticky z-40 px-6 py-3 flex items-center gap-3"
-        style={{
-          top: "56px",
-          backgroundColor: "rgba(10,10,11,0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid #27272a",
-        }}
-      >
-        <div className="relative">
-          <select
-            value={district}
-            onChange={(e) => {
-              setDistrict(e.target.value)
-              setVisibleCount(12)
-            }}
-            className="appearance-none text-sm pl-4 pr-9 py-2 rounded-full cursor-pointer outline-none focus:ring-1 transition-colors"
-            style={{
-              backgroundColor: "#18181b",
-              color: "#fafafa",
-              border: "1px solid #3f3f46",
-              fontFamily: "var(--font-sans)",
-            }}
-          >
-            {DISTRICTS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <svg
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-          >
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M6.5 1L11 3.5V9L6.5 12L2 9V3.5L6.5 1Z" stroke="white" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(255,255,255,0.15)"/>
+            <circle cx="6.5" cy="6.5" r="1.5" fill="white"/>
           </svg>
         </div>
-
-        <span className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-mono)" }}>
-          {filtered.length} fest{filtered.length !== 1 ? "s" : ""}
+        <span
+          className="text-white font-bold text-[17px] tracking-tight"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          FestKerala
         </span>
+      </a>
+
+      {/* Right side — desktop only */}
+      <div className="hidden sm:flex items-center gap-4">
+        <span style={{ color: "#555", fontSize: 12, fontFamily: "var(--font-mono)" }}>
+          {festCount} fests listed
+        </span>
+        <button className="btn-glow" onClick={onPostClick}>Post an Event</button>
+      </div>
+    </header>
+  )
+}
+
+// ─── FilterBar ───────────────────────────────────────────────────────────────
+
+function FilterBar({ district, onChange, total }: { district: string; onChange: (d: string) => void; total: number }) {
+  return (
+    <div
+      className="sticky z-40 flex items-center gap-3 px-4 py-2.5"
+      style={{
+        top: 54,
+        background: "rgba(10,10,10,0.88)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #1e1e1e",
+      }}
+    >
+      <div className="relative">
+        <select
+          value={district}
+          onChange={(e) => onChange(e.target.value)}
+          className="appearance-none text-[13px] pl-3.5 pr-8 py-1.5 rounded-full cursor-pointer outline-none"
+          style={{
+            background: "#1a1a1a",
+            color: "#d4d4d4",
+            border: "1px solid #2a2a2a",
+            fontFamily: "var(--font-display)",
+          }}
+        >
+          {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+          width="10" height="10" viewBox="0 0 10 10" fill="none"
+          style={{ color: "#666" }}
+        >
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+      <span style={{ color: "#444", fontSize: 12, fontFamily: "var(--font-mono)" }}>
+        {total} fest{total !== 1 ? "s" : ""}
+      </span>
+    </div>
+  )
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
+
+type View = "home" | "post"
+
+export default function App() {
+  const [view, setView] = useState<View>("home")
+  const [selectedFest, setSelectedFest] = useState<Fest | null>(null)
+  const [district, setDistrict] = useState("All Districts")
+  const savedScroll = useRef(0)
+
+  const todayStr = today()
+  const approved = MOCK_FESTS.filter(
+    (f) => f.status === "approved" && f.end_date >= todayStr
+  )
+  const filtered = district === "All Districts"
+    ? approved
+    : approved.filter((f) => f.district === district)
+
+  const openPost = () => {
+    savedScroll.current = window.scrollY
+    setView("post")
+  }
+  const closePost = () => {
+    setView("home")
+    requestAnimationFrame(() => window.scrollTo(0, savedScroll.current))
+  }
+
+  const openDetail = (fest: Fest) => {
+    savedScroll.current = window.scrollY
+    setSelectedFest(fest)
+  }
+  const closeDetail = useCallback(() => {
+    setSelectedFest(null)
+    requestAnimationFrame(() => window.scrollTo(0, savedScroll.current))
+  }, [])
+
+  // Lock body scroll when modal open
+  useEffect(() => {
+    document.body.style.overflow = (selectedFest || view === "post") ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [selectedFest, view])
+
+  return (
+    <div style={{ backgroundColor: "#0a0a0a", minHeight: "100vh" }}>
+      <Header onPostClick={openPost} festCount={approved.length} />
+
+      {/* Hero */}
+      <div className="pt-[100px] pb-6 px-4 text-center">
+        <p
+          className="text-[11px] tracking-[0.18em] uppercase mb-3"
+          style={{ color: "#555", fontFamily: "var(--font-mono)" }}
+        >
+          Kerala · College Fests · 2025–26
+        </p>
+        <h1
+          className="font-extrabold leading-none mb-3"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(2.6rem, 7vw, 5rem)",
+            color: "#f2f2f2",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Discover the{" "}
+          <span style={{ color: "#a78bfa" }}>Fests</span>
+        </h1>
+        <p
+          className="text-sm max-w-sm mx-auto"
+          style={{ color: "#666", fontFamily: "var(--font-mono)", lineHeight: 1.65 }}
+        >
+          Every cultural, tech &amp; arts fest across Kerala's colleges — one place.
+        </p>
       </div>
 
-      {/* MASONRY GRID */}
-      <div
-        className="px-4 py-6 max-w-7xl mx-auto"
-        onMouseEnter={() => setOverContent(true)}
-        onMouseLeave={() => setOverContent(false)}
-      >
+      <FilterBar district={district} onChange={setDistrict} total={filtered.length} />
+
+      {/* Grid */}
+      <div className="px-3 pt-4 pb-24 max-w-6xl mx-auto">
         {filtered.length === 0 ? (
-          <div className="text-center py-32 text-zinc-600" style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem" }}>
-            No fests found in {district}.
+          <div className="text-center py-24" style={{ color: "#444", fontFamily: "var(--font-mono)", fontSize: 14 }}>
+            No approved fests in {district} right now.
           </div>
         ) : (
-          <div className="masonry-grid">
-            {visible.map((fest) => (
-              <FestCard key={fest.id} fest={fest} />
-            ))}
-          </div>
-        )}
-
-        {/* Sentinel for infinite scroll */}
-        {visibleCount < filtered.length && (
-          <div ref={sentinelRef} className="h-16 flex items-center justify-center">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse"
-                  style={{ animationDelay: `${i * 150}ms` }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {visibleCount >= filtered.length && filtered.length > 0 && (
-          <p
-            className="text-center text-zinc-700 text-xs py-10"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            — all {filtered.length} fests shown —
-          </p>
+          <MasonryGrid fests={filtered} onCardClick={openDetail} />
         )}
       </div>
+
+      {/* Mobile FAB — only on small screens */}
+      <button
+        className="btn-fab sm:hidden"
+        onClick={openPost}
+        aria-label="Post an event"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 4v12M4 10h12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
+
+      {/* Detail modal */}
+      {selectedFest && <DetailModal fest={selectedFest} onClose={closeDetail} />}
+
+      {/* Post form modal */}
+      {view === "post" && <PostForm onClose={closePost} />}
     </div>
   )
 }
