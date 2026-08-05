@@ -147,9 +147,11 @@ function MasonryGrid({
   const columns = buildColumns(fests, cols);
 
   return (
-    <div className="flex gap-3 items-start">
+    <div
+      className={`flex gap-3 items-start ${fests.length < 3 ? "justify-center" : ""}`}
+    >
       {columns.map((col, ci) => (
-        <div key={ci} className="flex-1 min-w-0">
+        <div key={ci} className="flex-1 min-w-0 max-w-sm">
           {col.map((fest) => (
             <FestCard
               key={fest.id}
@@ -846,6 +848,8 @@ function PostForm({ onClose }: { onClose: () => void }) {
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 
+// ─── Header ─────────────────────────────────────────────────────────────────
+
 function Header({
   onPostClick,
   festCount,
@@ -862,10 +866,9 @@ function Header({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-13.5 transition-all duration-300"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-16 h-18 transition-all duration-300"
       style={{
-        background: scrolled ? "rgba(10,10,10,0.92)" : "rgba(10,10,10,0.6)",
-        backdropFilter: "blur(14px)",
+        background: "transparent",
         borderBottom: scrolled ? "1px solid #1e1e1e" : "1px solid transparent",
       }}
     >
@@ -892,24 +895,43 @@ function Header({
           </svg>
         </div>
         <span
-          className="text-white font-bold text-[17px] tracking-tight"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="text-white border:black font-extrabold text-[17px] tracking-tight"
+          style={{ 
+            fontFamily: "var(--font-display)",
+            textDecoration: "1px solid black",
+           }}
         >
-          FestKerala
+          Fest Kerala
         </span>
       </a>
 
-      <div className="hidden sm:flex items-center gap-4">
+      <div className="hidden sm:flex items-center gap-6">
         <span
           style={{
             color: "#555",
             fontSize: 12,
-            fontFamily: "var(--font-mono)",
+            fontFamily: "var(--font-display)",
           }}
         >
           {festCount} fests listed
         </span>
-        <button className="btn-glow" onClick={onPostClick}>
+
+        <div style={{ width: 1, height: 18, background: "#2a2a2a" }} />
+
+        <button
+          onClick={onPostClick}
+          style={{
+            background: "#f8f8f8",
+            color: "#0a0a0a",
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: 13,
+            padding: "8px 18px",
+            borderRadius: 999,
+            border: "1px solid rgba(15, 15, 15, 0.08)",
+            cursor: "pointer",
+          }}
+        >
           Post an Event
         </button>
       </div>
@@ -930,11 +952,10 @@ function FilterBar({
 }) {
   return (
     <div
-      className="sticky z-40 flex items-center gap-3 px-4 py-2.5"
+      className="sticky z-40 flex items-center gap-3 px-16 py-2.5"
       style={{
-        top: 54,
-        background: "rgba(10,10,10,0.88)",
-        backdropFilter: "blur(12px)",
+        top: 72,
+        background: "transparent",
         borderBottom: "1px solid #1e1e1e",
       }}
     >
@@ -974,7 +995,7 @@ function FilterBar({
         </svg>
       </div>
       <span
-        style={{ color: "#444", fontSize: 12, fontFamily: "var(--font-mono)" }}
+        style={{ color: "#444", fontSize: 12, fontFamily: "var(--font-display)" }}
       >
         {total} fest{total !== 1 ? "s" : ""}
       </span>
@@ -1054,108 +1075,120 @@ export default function App() {
   }, [selectedFest, view]);
 
   return (
-    <div style={{ backgroundColor: "#0a0a0a", minHeight: "100vh" }}>
-      <Header onPostClick={openPost} festCount={fests.length} />
-
-      {/* Hero */}
-      <div className="pt-25 pb-6 px-4 text-center">
-        <p
-          className="text-[11px] tracking-[0.18em] uppercase mb-3"
-          style={{ color: "#555", fontFamily: "var(--font-mono)" }}
-        >
-          Kerala · College Fests · 2025–26
-        </p>
-        <h1
-          className="font-extrabold leading-none mb-3"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(2.6rem, 7vw, 5rem)",
-            color: "#f2f2f2",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Discover the <span style={{ color: "#a78bfa" }}>Fests</span>
-        </h1>
-        <p
-          className="text-sm max-w-sm mx-auto"
-          style={{
-            color: "#666",
-            fontFamily: "var(--font-mono)",
-            lineHeight: 1.65,
-          }}
-        >
-          Every cultural, tech &amp; arts fest across Kerala's colleges — one
-          place.
-        </p>
+    <div
+      className="relative overflow-hidden"
+      style={{ backgroundColor: "#0a0a0a", minHeight: "100vh" }}
+    >
+      {/* Ambient background glow — keeps the black background from reading as
+          "empty/broken" when there are few fests or lots of side padding */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/20 blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/10 blur-[120px]" />
       </div>
 
-      <FilterBar
-        district={district}
-        onChange={setDistrict}
-        total={filtered.length}
-      />
+      <div className="relative z-10">
+        <Header onPostClick={openPost} festCount={fests.length} />
 
-      {/* Grid */}
-      <div className="px-3 pt-4 pb-24 max-w-6xl mx-auto">
-        {loading ? (
-          <div
-            className="text-center py-24"
+        {/* Hero */}
+        <div className="pt-25 pb-6 px-4 text-center">
+          <p
+            className="text-[11px] tracking-[0.18em] uppercase mb-3"
+            style={{ color: "#555", fontFamily: "var(--font-display)" }}
+          >
+            Kerala · College Fests · 2025–26
+          </p>
+          <h1
+            className="font-extrabold leading-none mb-3"
             style={{
-              color: "#444",
-              fontFamily: "var(--font-mono)",
-              fontSize: 14,
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2.6rem, 7vw, 5rem)",
+              color: "#f2f2f2",
+              letterSpacing: "-0.02em",
             }}
           >
-            Loading fests…
-          </div>
-        ) : loadError ? (
-          <div
-            className="text-center py-24"
+            Discover the <span style={{ color: "#a78bfa" }}>Fests</span>
+          </h1>
+          <p
+            className="text-sm max-w-sm mx-auto"
             style={{
-              color: "#c96",
+              color: "#666",
               fontFamily: "var(--font-mono)",
-              fontSize: 14,
+              lineHeight: 1.65,
             }}
           >
-            {loadError}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div
-            className="text-center py-24"
-            style={{
-              color: "#444",
-              fontFamily: "var(--font-mono)",
-              fontSize: 14,
-            }}
-          >
-            No approved fests in {district} right now.
-          </div>
-        ) : (
-          <MasonryGrid fests={filtered} onCardClick={openDetail} />
+            Every cultural, tech &amp; arts fest across Kerala's colleges — one
+            place.
+          </p>
+        </div>
+
+        <FilterBar
+          district={district}
+          onChange={setDistrict}
+          total={filtered.length}
+        />
+
+        {/* Grid */}
+        <div className="px-3 pt-4 pb-24 max-w-6xl mx-auto">
+          {loading ? (
+            <div
+              className="text-center py-24"
+              style={{
+                color: "#444",
+                fontFamily: "var(--font-mono)",
+                fontSize: 14,
+              }}
+            >
+              Loading fests…
+            </div>
+          ) : loadError ? (
+            <div
+              className="text-center py-24"
+              style={{
+                color: "#c96",
+                fontFamily: "var(--font-mono)",
+                fontSize: 14,
+              }}
+            >
+              {loadError}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div
+              className="text-center py-24"
+              style={{
+                color: "#444",
+                fontFamily: "var(--font-mono)",
+                fontSize: 14,
+              }}
+            >
+              No approved fests in {district} right now.
+            </div>
+          ) : (
+            <MasonryGrid fests={filtered} onCardClick={openDetail} />
+          )}
+        </div>
+
+        {/* Mobile FAB — only on small screens */}
+        <button
+          className="btn-fab sm:hidden"
+          onClick={openPost}
+          aria-label="Post an event"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path
+              d="M10 4v12M4 10h12"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+
+        {selectedFest && (
+          <DetailModal fest={selectedFest} onClose={closeDetail} />
         )}
+
+        {view === "post" && <PostForm onClose={closePost} />}
       </div>
-
-      {/* Mobile FAB — only on small screens */}
-      <button
-        className="btn-fab sm:hidden"
-        onClick={openPost}
-        aria-label="Post an event"
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M10 4v12M4 10h12"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
-
-      {selectedFest && (
-        <DetailModal fest={selectedFest} onClose={closeDetail} />
-      )}
-
-      {view === "post" && <PostForm onClose={closePost} />}
     </div>
   );
 }
