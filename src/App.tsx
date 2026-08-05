@@ -848,7 +848,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 
-
 function Header({
   onPostClick,
   festCount,
@@ -867,10 +866,14 @@ function Header({
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 transition-all duration-300"
       style={{
-        background: scrolled ? "rgba(10, 10, 10, 0.76)" : "rgba(15, 15, 15, 0.56)",
+        background: scrolled
+          ? "rgba(10, 10, 10, 0.76)"
+          : "rgba(15, 15, 15, 0.56)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
-        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+        borderBottom: scrolled
+          ? "1px solid rgba(255,255,255,0.08)"
+          : "1px solid transparent",
       }}
     >
       <a
@@ -897,10 +900,10 @@ function Header({
         </div>
         <span
           className="text-white border:black font-extrabold text-[17px] tracking-tight"
-          style={{ 
+          style={{
             fontFamily: "var(--font-display)",
             textDecoration: "1px solid black",
-           }}
+          }}
         >
           Fest Kerala
         </span>
@@ -996,7 +999,11 @@ function FilterBar({
         </svg>
       </div>
       <span
-        style={{ color: "#444", fontSize: 12, fontFamily: "var(--font-display)" }}
+        style={{
+          color: "#444",
+          fontSize: 12,
+          fontFamily: "var(--font-display)",
+        }}
       >
         {total} fest{total !== 1 ? "s" : ""}
       </span>
@@ -1083,8 +1090,8 @@ export default function App() {
       {/* Ambient background glow — keeps the black background from reading as
           "empty/broken" when there are few fests or lots of side padding */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/8 blur-[120px]" />
+        <div className="absolute -top-40 -left-40 h-125 w-125 rounded-full bg-purple-600/15 blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-125 w-125 rounded-full bg-fuchsia-600/8 blur-[120px]" />
       </div>
 
       <div className="relative z-10">
