@@ -387,6 +387,10 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const handleBackdrop = (e: React.MouseEvent) => {
+  if (e.target === backdropRef.current) onClose();
+  };
 
   const set = (k: keyof FormState, v: string | File | null | Category[]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -558,10 +562,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
     );
   }
 
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const handleBackdrop = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) onClose();
-  };
 
   return (
     <div
@@ -897,10 +897,10 @@ function Header({
         </div>
         <span
           className="text-white border:black font-extrabold text-[17px] tracking-tight"
-          style={{ 
+          style={{
             fontFamily: "var(--font-display)",
             textDecoration: "1px solid black",
-           }}
+          }}
         >
           Fest Kerala
         </span>
@@ -944,62 +944,119 @@ function Header({
 
 function FilterBar({
   district,
-  onChange,
+  category,
+  query,
+  onDistrictChange,
+  onCategoryChange,
+  onQueryChange,
   total,
 }: {
   district: string;
-  onChange: (d: string) => void;
+  category: "All" | Category;
+  query: string;
+  onDistrictChange: (d: string) => void;
+  onCategoryChange: (c: "All" | Category) => void;
+  onQueryChange: (value: string) => void;
   total: number;
 }) {
   return (
     <div
-      className="sticky z-40 flex items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-16"
+      className="sticky z-40 px-4 py-3 sm:px-6 lg:px-16"
       style={{
         top: 72,
         background: "rgba(10, 10, 10, 0.96)",
         borderBottom: "1px solid #1e1e1e",
       }}
     >
-      <div className="relative">
-        <select
-          value={district}
-          onChange={(e) => onChange(e.target.value)}
-          className="appearance-none text-[13px] pl-3.5 pr-8 py-1.5 rounded-full cursor-pointer outline-none"
-          style={{
-            background: "#1a1a1a",
-            color: "#d4d4d4",
-            border: "1px solid #2a2a2a",
-            fontFamily: "var(--font-display)",
-          }}
-        >
-          {DISTRICTS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-        <svg
-          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          fill="none"
-          style={{ color: "#666" }}
-        >
-          <path
-            d="M2 3.5L5 6.5L8 3.5"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Search fests, colleges, districts, tags..."
+            className="field w-full text-[13px] rounded-full"
+            style={{ padding: "14px 16px" }}
           />
-        </svg>
+        </div>
+
+        <div className="relative min-w-[170px]">
+          <select
+            value={district}
+            onChange={(e) => onDistrictChange(e.target.value)}
+            className="appearance-none text-[13px] pl-3.5 pr-8 py-2 rounded-full cursor-pointer outline-none w-full"
+            style={{
+              background: "#1a1a1a",
+              color: "#d4d4d4",
+              border: "1px solid #2a2a2a",
+              fontFamily: "var(--font-display)",
+            }}
+          >
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            style={{ color: "#666" }}
+          >
+            <path
+              d="M2 3.5L5 6.5L8 3.5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
       </div>
-      <span
-        style={{ color: "#444", fontSize: 12, fontFamily: "var(--font-display)" }}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onCategoryChange("All")}
+          className={`text-[13px] px-3 py-1.5 rounded-full border transition ${
+            category === "All"
+              ? "bg-violet-500/18 text-violet-200 border-violet-500/35"
+              : "bg-[#151515] text-[#ccc] border-[#2a2a2a] hover:border-violet-500/35"
+          }`}
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          All categories
+        </button>
+        {CATEGORIES.map((item) => {
+          const active = category === item;
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onCategoryChange(item)}
+              className={`text-[13px] px-3 py-1.5 rounded-full border transition ${
+                active
+                  ? "bg-violet-500/18 text-violet-200 border-violet-500/35"
+                  : "bg-[#151515] text-[#ccc] border-[#2a2a2a] hover:border-violet-500/35"
+              }`}
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {item}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        className="mt-3 text-xs"
+        style={{ color: "#999", fontFamily: "var(--font-mono)" }}
       >
-        {total} fest{total !== 1 ? "s" : ""}
-      </span>
+        Showing {total} fest{total !== 1 ? "s" : ""}
+        {category !== "All" ? ` · ${category}` : ""}
+      </div>
     </div>
   );
 }
@@ -1012,6 +1069,8 @@ export default function App() {
   const [view, setView] = useState<View>("home");
   const [selectedFest, setSelectedFest] = useState<Fest | null>(null);
   const [district, setDistrict] = useState("All Districts");
+  const [category, setCategory] = useState<"All" | Category>("All");
+  const [query, setQuery] = useState("");
   const [fests, setFests] = useState<Fest[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1041,10 +1100,23 @@ export default function App() {
     loadFests();
   }, [loadFests]);
 
-  const filtered =
-    district === "All Districts"
-      ? fests
-      : fests.filter((f) => f.district === district);
+  const filtered = fests
+    .filter((fest) =>
+      district === "All Districts" ? true : fest.district === district
+    )
+    .filter((fest) =>
+      category === "All" ? true : fest.tags.includes(category)
+    )
+    .filter((fest) => {
+      const term = query.trim().toLowerCase();
+      if (!term) return true;
+      return (
+        fest.fest_name.toLowerCase().includes(term) ||
+        fest.college_name.toLowerCase().includes(term) ||
+        fest.district.toLowerCase().includes(term) ||
+        fest.tags.some((tag) => tag.toLowerCase().includes(term))
+      );
+    });
 
   const openPost = () => {
     savedScroll.current = window.scrollY;
@@ -1124,7 +1196,11 @@ export default function App() {
 
         <FilterBar
           district={district}
-          onChange={setDistrict}
+          category={category}
+          query={query}
+          onDistrictChange={setDistrict}
+          onCategoryChange={setCategory}
+          onQueryChange={setQuery}
           total={filtered.length}
         />
 
