@@ -443,7 +443,10 @@ export default function AdminDashboard() {
       return next;
     });
   };
-
+  const allSelected = list.length > 0 && selected.size === list.length;
+  const toggleSelectAll = () => {
+  setSelected(allSelected ? new Set() : new Set(list.map((f) => f.id)));
+  };
   const removeFromList = (id: string) => {
     setList((p) => p.filter((f) => f.id !== id));
     setSelected((s) => {
@@ -597,15 +600,20 @@ export default function AdminDashboard() {
         {list.length > 0 && (
           <div
             className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
-            <span className="text-xs" style={{ color: "#666" }}>
+            <label className="flex items-center gap-2 text-xs cursor-pointer " style={{ color: "#666" , fontFamily: "var(--font-display)"}}>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+              />
               {selected.size > 0
                 ? `${selected.size} selected`
                 : tab === "pending"
                   ? `${list.length} pending fest${list.length !== 1 ? "s" : ""}`
                   : `${list.length} live fest${list.length !== 1 ? "s" : ""}`}
-            </span>
+            </label>
             {selected.size > 0 && tab === "pending" && (
               <div className="flex gap-2">
                 <button
@@ -660,7 +668,7 @@ export default function AdminDashboard() {
           >
             Loading…
           </p>
-        ) : loadError ? (
+        ) : loadError ? ( 
           <p
             className="text-center py-16 text-sm"
             style={{ color: "#c96", fontFamily: "var(--font-mono)" }}
