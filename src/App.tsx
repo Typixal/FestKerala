@@ -629,7 +629,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
                 <img
                   src={form.poster_preview}
                   alt="Preview"
-                  className="max-h-32 rounded-lg object-contain"
+                  className="max-h-full max-w-full rounded-lg object-contain"
                 />
               ) : (
                 <>
@@ -848,7 +848,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 
-// ─── Header ─────────────────────────────────────────────────────────────────
 
 function Header({
   onPostClick,
@@ -866,10 +865,12 @@ function Header({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-16 h-18 transition-all duration-300"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 transition-all duration-300"
       style={{
-        background: "transparent",
-        borderBottom: scrolled ? "1px solid #1e1e1e" : "1px solid transparent",
+        background: scrolled ? "rgba(10, 10, 10, 0.76)" : "rgba(15, 15, 15, 0.56)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
       }}
     >
       <a
@@ -952,10 +953,10 @@ function FilterBar({
 }) {
   return (
     <div
-      className="sticky z-40 flex items-center gap-3 px-16 py-2.5"
+      className="sticky z-40 flex items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-16"
       style={{
         top: 72,
-        background: "transparent",
+        background: "rgba(10, 10, 10, 0.96)",
         borderBottom: "1px solid #1e1e1e",
       }}
     >
@@ -1081,16 +1082,16 @@ export default function App() {
     >
       {/* Ambient background glow — keeps the black background from reading as
           "empty/broken" when there are few fests or lots of side padding */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/20 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block">
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/8 blur-[120px]" />
       </div>
 
       <div className="relative z-10">
         <Header onPostClick={openPost} festCount={fests.length} />
 
         {/* Hero */}
-        <div className="pt-25 pb-6 px-4 text-center">
+        <div className="pt-24 pb-6 px-4 sm:px-6 lg:px-16 text-center">
           <p
             className="text-[11px] tracking-[0.18em] uppercase mb-3"
             style={{ color: "#555", fontFamily: "var(--font-display)" }}
