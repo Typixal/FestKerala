@@ -1,7 +1,12 @@
 import { next } from "@vercel/functions";
 
-// process is not available in the Edge runtime typings; declare the env
-// subset we use so TypeScript won't error during local type-checking.
+// process is a real global provided by Vercel's Edge Runtime at runtime,
+// but its type isn't declared unless @types/node (or similar) is installed.
+// This narrow declaration covers only what this file actually uses, so
+// TypeScript type-checks cleanly without pulling in the full Node types.
+// IMPORTANT: access process directly (not via globalThis.process) — Edge
+// Runtime provides it as an injected global binding, which is not
+// guaranteed to also appear as an enumerable property on globalThis.
 declare const process: {
   env: {
     SUPABASE_URL?: string;
@@ -153,6 +158,7 @@ export default async function middleware(request: Request) {
   const pageUrl = `${SITE_URL}${pathname}`;
 
   if (!id) {
+    console.log("[OG] no id parsed from pathname:", pathname);
     return fallbackResponse(pageUrl);
   }
 
@@ -160,8 +166,12 @@ export default async function middleware(request: Request) {
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Misconfigured env — fail soft with the generic branded card rather
-    // than breaking every crawler preview.
+    console.log(
+      "[OG] missing env vars — SUPABASE_URL present:",
+      !!supabaseUrl,
+      "SUPABASE_ANON_KEY present:",
+      !!supabaseAnonKey,
+    );
     return fallbackResponse(pageUrl);
   }
 
@@ -180,6 +190,13 @@ export default async function middleware(request: Request) {
     });
 
     if (!res.ok) {
+      const body = await res.text();
+      console.log(
+        "[OG] supabase fetch not ok — status:",
+        res.status,
+        "body:",
+        body,
+      );
       return fallbackResponse(pageUrl);
     }
 
@@ -194,10 +211,16 @@ export default async function middleware(request: Request) {
     const fest = rows[0];
 
     if (!fest) {
-      // Not found, pending, rejected, or unlisted — same generic fallback
-      // either way, so crawlers never reveal moderation state.
+      console.log(
+        "[OG] no matching approved fest for id:",
+        id,
+        "rows returned:",
+        rows.length,
+      );
       return fallbackResponse(pageUrl);
     }
+
+    console.log("[OG] serving real OG tags for fest:", fest.fest_name);
 
     const html = renderHtml({
       title: `${fest.fest_name} — ${SITE_NAME}`,
@@ -214,7 +237,7 @@ export default async function middleware(request: Request) {
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   } catch (err) {
-    console.error("OG middleware error:", err);
+    console.error("[OG] middleware threw:", err);
     return fallbackResponse(pageUrl);
   }
 }
