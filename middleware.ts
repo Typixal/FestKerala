@@ -186,6 +186,7 @@ export default async function middleware(request: Request) {
       headers: {
         apikey: supabaseAnonKey,
         authorization: `Bearer ${supabaseAnonKey}`,
+        "Accept-Profile": "public",
       },
     });
 
