@@ -6,8 +6,8 @@ import {
   type DragEvent,
   type ChangeEvent,
 } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
+import logoUrl from "./logo.svg";
 import {
   DISTRICTS,
   TAG_STYLES,
@@ -416,7 +416,7 @@ useEffect(() => {
   const fileRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const handleBackdrop = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) onClose();
+  if (e.target === backdropRef.current) onClose();
   };
 
   const set = (k: keyof FormState, v: string | File | null | Category[]) => {
@@ -588,6 +588,7 @@ useEffect(() => {
       </div>
     );
   }
+
 
   return (
     <div
@@ -874,6 +875,7 @@ useEffect(() => {
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 
+
 function Header({
   onPostClick,
   festCount,
@@ -892,14 +894,10 @@ function Header({
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 transition-all duration-300"
       style={{
-        background: scrolled
-          ? "rgba(10, 10, 10, 0.76)"
-          : "rgba(15, 15, 15, 0.56)",
+        background: scrolled ? "rgba(10, 10, 10, 0.76)" : "rgba(15, 15, 15, 0.56)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
-        borderBottom: scrolled
-          ? "1px solid rgba(255,255,255,0.08)"
-          : "1px solid transparent",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
       }}
     >
       <a
@@ -907,11 +905,7 @@ function Header({
         className="flex items-center gap-2.5"
         style={{ textDecoration: "none" }}
       >
-        <img
-          src="src/logo.svg"
-          alt="Fest Kerala"
-          className="w-9 h-9 shrink-0 object-contain"
-        />
+       <img src={logoUrl} alt="Fest Kerala" className="w-9 h-9 shrink-0 object-contain" />
         <span
           className="text-white border:black font-extrabold text-[17px] tracking-tight"
           style={{
@@ -1084,8 +1078,7 @@ type View = "home" | "post";
 
 export default function App() {
   const [view, setView] = useState<View>("home");
-  const { id: routeFestId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [selectedFest, setSelectedFest] = useState<Fest | null>(null);
   const [district, setDistrict] = useState("All Districts");
   const [category, setCategory] = useState<"All" | Category>("All");
   const [query, setQuery] = useState("");
@@ -1093,13 +1086,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const savedScroll = useRef(0);
-
-  // Fallback fest fetched directly by id — only populated when someone opens
-  // a /fest/:id link (e.g. a shared link) whose fest isn't in the already
-  // -loaded approved list yet (or never will be, e.g. it's since expired).
-  const [directFest, setDirectFest] = useState<Fest | null>(null);
-  const [directFestLoading, setDirectFestLoading] = useState(false);
-  const [directFestError, setDirectFestError] = useState(false);
 
   const loadFests = useCallback(async () => {
     setLoading(true);
@@ -1125,55 +1111,12 @@ export default function App() {
     loadFests();
   }, [loadFests]);
 
-  // Resolve the fest for the current /fest/:id, if any. Prefer the already
-  // -loaded list (instant, no extra request); only hit Supabase directly if
-  // the id isn't there yet — the common case when a link is opened fresh.
-  const selectedFest =
-    (routeFestId && fests.find((f) => f.id === routeFestId)) ||
-    (routeFestId && directFest?.id === routeFestId ? directFest : null) ||
-    null;
-
-  useEffect(() => {
-    if (!routeFestId) {
-      setDirectFest(null);
-      setDirectFestError(false);
-      return;
-    }
-    // Already have it from the loaded list — no fetch needed.
-    if (fests.some((f) => f.id === routeFestId)) return;
-    if (directFest?.id === routeFestId) return;
-
-    let cancelled = false;
-    setDirectFestLoading(true);
-    setDirectFestError(false);
-    supabase
-      .from("fests")
-      .select("*")
-      .eq("id", routeFestId)
-      .eq("status", "approved")
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data) {
-          setDirectFestError(true);
-        } else {
-          setDirectFest(data as Fest);
-        }
-        setDirectFestLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeFestId, fests]);
-
   const filtered = fests
     .filter((fest) =>
-      district === "All Districts" ? true : fest.district === district,
+      district === "All Districts" ? true : fest.district === district
     )
     .filter((fest) =>
-      category === "All" ? true : fest.tags.includes(category),
+      category === "All" ? true : fest.tags.includes(category)
     )
     .filter((fest) => {
       const term = query.trim().toLowerCase();
@@ -1200,12 +1143,12 @@ export default function App() {
 
   const openDetail = (fest: Fest) => {
     savedScroll.current = window.scrollY;
-    navigate(`/fest/${fest.id}`);
+    setSelectedFest(fest);
   };
   const closeDetail = useCallback(() => {
-    navigate("/");
+    setSelectedFest(null);
     requestAnimationFrame(() => window.scrollTo(0, savedScroll.current));
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow =
@@ -1223,8 +1166,8 @@ export default function App() {
       {/* Ambient background glow — keeps the black background from reading as
           "empty/broken" when there are few fests or lots of side padding */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block">
-        <div className="absolute -top-40 -left-40 h-125 w-125 rounded-full bg-purple-600/15 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-125 w-125 rounded-full bg-fuchsia-600/8 blur-[120px]" />
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/8 blur-[120px]" />
       </div>
 
       <div className="relative z-10">
@@ -1331,43 +1274,6 @@ export default function App() {
         {selectedFest && (
           <DetailModal fest={selectedFest} onClose={closeDetail} />
         )}
-
-        {routeFestId && !selectedFest && directFestLoading && (
-          <div className="modal-backdrop">
-            <p style={{ color: "#666", fontFamily: "var(--font-mono)" }}>
-              Loading fest…
-            </p>
-          </div>
-        )}
-
-        {routeFestId &&
-          !selectedFest &&
-          !directFestLoading &&
-          directFestError && (
-            <div className="modal-backdrop" onClick={closeDetail}>
-              <div
-                className="w-full max-w-sm rounded-2xl p-8 text-center"
-                style={{ background: "#111", border: "1px solid #2a2a2a" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h2
-                  className="text-white font-bold text-lg mb-2"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  Fest not found
-                </h2>
-                <p
-                  className="text-sm mb-6"
-                  style={{ color: "#888", fontFamily: "var(--font-mono)" }}
-                >
-                  This fest may have been removed or isn't approved yet.
-                </p>
-                <button className="btn-glow" onClick={closeDetail}>
-                  Back to Home
-                </button>
-              </div>
-            </div>
-          )}
 
         {view === "post" && <PostForm onClose={closePost} />}
       </div>
