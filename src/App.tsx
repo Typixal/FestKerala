@@ -392,6 +392,23 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const [errors, setErrors] = useState<
     Partial<Record<keyof FormState, string>>
   >({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+useEffect(() => {
+  const renderWidget = () => {
+    // @ts-ignore
+    if (window.turnstile) {
+      // @ts-ignore
+      window.turnstile.render('#turnstile-widget', {
+        sitekey: '0x4AAAAAAEIZCCP9FzJSgZRE',
+        callback: (token: string) => setTurnstileToken(token),
+      });
+    } else {
+      setTimeout(renderWidget, 200);
+    }
+  };
+  renderWidget();
+}, []);  
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -827,7 +844,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
               {submitError}
             </p>
           )}
-
+          <div id="turnstile-widget"></div>
           <button
             type="submit"
             disabled={submitting}
@@ -890,23 +907,11 @@ function Header({
         className="flex items-center gap-2.5"
         style={{ textDecoration: "none" }}
       >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{
-            background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path
-              d="M6.5 1L11 3.5V9L6.5 12L2 9V3.5L6.5 1Z"
-              stroke="white"
-              strokeWidth="1.2"
-              strokeLinejoin="round"
-              fill="rgba(255,255,255,0.15)"
-            />
-            <circle cx="6.5" cy="6.5" r="1.5" fill="white" />
-          </svg>
-        </div>
+        <img
+          src="src/logo.svg"
+          alt="Fest Kerala"
+          className="w-9 h-9 shrink-0 object-contain"
+        />
         <span
           className="text-white border:black font-extrabold text-[17px] tracking-tight"
           style={{
