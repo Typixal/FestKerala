@@ -214,20 +214,29 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
         </button>
 
         <div
-          className="relative"
-          style={{ maxHeight: 360, overflow: "hidden" }}
+          className="relative flex items-center justify-center"
+          style={{ maxHeight: 420, overflow: "hidden", background: "#000" }}
         >
+          {/* Blurred backdrop fill so portrait posters don't leave bare black bars */}
+          <img
+            src={fest.poster_image_url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "blur(24px) brightness(0.5)", transform: "scale(1.1)" }}
+          />
+          {/* Actual poster, shown in full — no cropping */}
           <img
             src={fest.poster_image_url}
             alt={fest.fest_name}
-            className="w-full object-cover block"
-            style={{ maxHeight: 360 }}
+            className="relative w-full block object-contain"
+            style={{ maxHeight: 420 }}
           />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.3) 40%, transparent 70%)",
+                "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.15) 35%, transparent 65%)",
             }}
           />
         </div>
