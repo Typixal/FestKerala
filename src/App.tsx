@@ -34,6 +34,41 @@ function formatDateRange(start: string, end: string) {
   return `${s.toLocaleDateString("en-IN", opts)} – ${e.toLocaleDateString("en-IN", { ...opts, year: "numeric" })}`;
 }
 
+async function compressImage(
+  file: File,
+  maxDim = 1600,
+  quality = 0.8
+): Promise<File> {
+  if (file.size < 300 * 1024 || file.type === "image/gif") return file;
+
+  const bitmap = await createImageBitmap(file);
+  let { width, height } = bitmap;
+
+  if (width > maxDim || height > maxDim) {
+    const scale = maxDim / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob: Blob | null = await new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", quality)
+  );
+  if (!blob) return file;
+
+  if (blob.size >= file.size) return file;
+
+  const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+  return new File([blob], newName, { type: "image/jpeg" });
+}
+
 // Balanced masonry: distribute cards into N columns by shortest-column-first
 function buildColumns<T>(items: T[], cols: number): T[][] {
   const columns: T[][] = Array.from({ length: cols }, () => []);
@@ -90,6 +125,8 @@ function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
         <img
           src={fest.poster_image_url}
           alt={fest.fest_name}
+          loading="lazy"
+          decoding="async"
           className={`w-full block object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
           style={{ maxHeight: 480 }}
           onLoad={() => setLoaded(true)}
@@ -489,7 +526,7 @@ useEffect(() => {
     setSubmitError(null);
 
     try {
-      const file = form.poster_file!;
+      const file = await compressImage(form.poster_file!);
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
 
@@ -875,7 +912,6 @@ useEffect(() => {
 
 // ─── Header ─────────────────────────────────────────────────────────────────
 
-
 function Header({
   onPostClick,
   festCount,
@@ -907,44 +943,60 @@ function Header({
       >
        <img src={logoUrl} alt="Fest Kerala" className="w-9 h-9 shrink-0 object-contain" />
         <span
-          className="text-white border:black font-extrabold text-[17px] tracking-tight"
-          style={{
-            fontFamily: "var(--font-display)",
-            textDecoration: "1px solid black",
-          }}
+          className="text-white font-extrabold text-[17px] tracking-tight"
+          style={{ fontFamily: "var(--font-display)" }}
         >
           Fest Kerala
         </span>
       </a>
 
-      <div className="hidden sm:flex items-center gap-6">
-        <span
-          style={{
-            color: "#555",
-            fontSize: 12,
-            fontFamily: "var(--font-display)",
-          }}
-        >
-          {festCount} fests listed
-        </span>
+      <div className="flex items-center gap-4">
+        <nav className="hidden sm:flex items-center gap-4">
+          <a
+            href="#home"
+            className="text-sm text-[#ccc] hover:text-white transition"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Home
+          </a>
+          <a
+            href="#support"
+            className="text-sm text-[#ccc] hover:text-white transition"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Support
+          </a>
+          <a
+            href="#about"
+            className="text-sm text-[#ccc] hover:text-white transition"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            About
+          </a>
+        </nav>
 
-        <div style={{ width: 1, height: 18, background: "#2a2a2a" }} />
-
+        {/* Icon + label on desktop, icon-only on mobile — always visible so
+            there's one consistent way to post, not header-button-on-desktop
+            vs FAB-on-mobile */}
         <button
           onClick={onPostClick}
+          className="flex items-center gap-1.5"
           style={{
             background: "#f8f8f8",
             color: "#0a0a0a",
             fontFamily: "var(--font-display)",
             fontWeight: 600,
             fontSize: 13,
-            padding: "8px 18px",
+            padding: "8px 14px",
             borderRadius: 999,
             border: "1px solid rgba(15, 15, 15, 0.08)",
             cursor: "pointer",
           }}
         >
-          Post an Event
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1v12M1 7h12" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <span className="hidden sm:inline">Post an Event</span>
         </button>
       </div>
     </header>
@@ -1174,7 +1226,7 @@ export default function App() {
         <Header onPostClick={openPost} festCount={fests.length} />
 
         {/* Hero */}
-        <div className="pt-24 pb-6 px-4 sm:px-6 lg:px-16 text-center">
+        <section id="home" className="pt-24 pb-6 px-4 sm:px-6 lg:px-16 text-center">
           <p
             className="text-[11px] tracking-[0.18em] uppercase mb-3"
             style={{ color: "#555", fontFamily: "var(--font-display)" }}
@@ -1203,7 +1255,7 @@ export default function App() {
             Every cultural, tech &amp; arts fest across Kerala's colleges — one
             place.
           </p>
-        </div>
+        </section>
 
         <FilterBar
           district={district}
@@ -1277,6 +1329,52 @@ export default function App() {
 
         {view === "post" && <PostForm onClose={closePost} />}
       </div>
+
+      <section id="support" className="px-4 sm:px-6 lg:px-16 pb-12 pt-10">
+        <div className="max-w-5xl mx-auto">
+          <h2
+            className="text-xl font-bold mb-3"
+            style={{ fontFamily: "var(--font-display)", color: "#fdf4ff" }}
+          >
+            Support
+          </h2>
+          <p
+            className="text-sm leading-7"
+            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
+          >
+            Need help finding the right fest or want to share feedback? Reach out to
+            us at <a href="mailto:hello@festkerala.com" className="text-violet-300 underline">hello@festkerala.com</a>.
+            We&apos;re happy to help with event listings, poster submissions,
+            and campus fest guidance.
+          </p>
+        </div>
+      </section>
+
+      <section id="about" className="px-4 sm:px-6 lg:px-16 pb-16">
+        <div className="max-w-5xl mx-auto">
+          <h2
+            className="text-xl font-bold mb-3"
+            style={{ fontFamily: "var(--font-display)", color: "#fdf4ff" }}
+          >
+            About Fest Kerala
+          </h2>
+          <p
+            className="text-sm leading-7 mb-4"
+            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
+          >
+            Fest Kerala is a curated directory of college festivals across Kerala.
+            We collect approved events, posters, and registration links so students
+            and organizers can discover upcoming cultural, technical, and arts fests.
+          </p>
+          <p
+            className="text-sm leading-7"
+            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
+          >
+            This site is built to keep event discovery simple, accessible, and
+            beautifully presented for every fest season.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
