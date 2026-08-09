@@ -941,7 +941,7 @@ function Header({
         className="flex items-center gap-2.5"
         style={{ textDecoration: "none" }}
       >
-        <img src={logoUrl} alt="Fest Kerala" className="w-9 h-9 shrink-0 object-contain" />
+       <img src={logoUrl} alt="Fest Kerala" className="w-9 h-9 shrink-0 object-contain" />
         <span
           className="text-white font-extrabold text-[17px] tracking-tight"
           style={{ fontFamily: "var(--font-display)" }}
