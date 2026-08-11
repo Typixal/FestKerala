@@ -1404,7 +1404,7 @@ export default function App() {
       </p>
       <p
         className="text-sm leading-7"
-        style={{ color: "#999", fontFamily: "var(--font-mono)" }}
+        style={{ color: "#999", fontFamily: "var(--font-display)" }}
       >
         This site is built to keep event discovery simple, accessible, and
         beautifully presented for every fest season.
