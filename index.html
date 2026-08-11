@@ -7,6 +7,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><!-- figma:title --></title>
+
+    <!-- Baseline OG/Twitter tags for the homepage and as a generic fallback.
+         Per-fest pages (/fest/:id) get fest-specific versions of these same
+         tags injected server-side by middleware.ts for crawlers only — this
+         block is what real browsers and any crawler outside that middleware
+         path (e.g. hitting "/") will see. -->
+    <meta
+      name="description"
+      content="Every cultural, tech & arts fest across Kerala's colleges — one place."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FestKerala" />
+    <meta
+      property="og:title"
+      content="FestKerala — Discover Kerala's College Fests"
+    />
+    <meta
+      property="og:description"
+      content="Every cultural, tech & arts fest across Kerala's colleges — one place."
+    />
+    <meta
+      property="og:image"
+      content="https://fest-kerala.vercel.app/og-fallback.png"
+    />
+    <meta property="og:url" content="https://fest-kerala.vercel.app/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="FestKerala — Discover Kerala's College Fests"
+    />
+    <meta
+      name="twitter:description"
+      content="Every cultural, tech & arts fest across Kerala's colleges — one place."
+    />
+    <meta
+      name="twitter:image"
+      content="https://fest-kerala.vercel.app/og-fallback.jpg"
+    />
     <!-- figma:head-end -->
   </head>
   <body>
