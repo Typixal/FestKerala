@@ -494,6 +494,7 @@ useEffect(() => {
 
   const validate = () => {
     const e: typeof errors = {};
+    if (!turnstileToken) e.registration_link = e.registration_link; // no-op placeholder
     if (!form.fest_name.trim()) e.fest_name = "Required";
     if (!form.college_name.trim()) e.college_name = "Required";
     if (!form.district) e.district = "Select a district";
@@ -502,20 +503,31 @@ useEffect(() => {
     if (form.start_date && form.end_date && form.end_date < form.start_date)
       e.end_date = "End date must be after start date";
     if (!form.registration_link.trim()) {
-      e.registration_link = "Required";
-    } else {
+          e.registration_link = "Required";
+    } 
+    else {
       try {
-        new URL(form.registration_link);
-      } catch {
-        e.registration_link = "Enter a valid URL (e.g. https://…)";
+        const parsed = new URL(form.registration_link.trim());
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        e.registration_link = "Link must start with http:// or https://";
+      }
+    }   
+    catch {
+      e.registration_link = "Enter a valid URL (e.g. https://…)";
       }
     }
+    
     if (!form.poster_file) e.poster_file = "Please upload a poster image.";
     return e;
   };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!turnstileToken) {
+    setSubmitError("Please complete the CAPTCHA before submitting.");
+    return;
+  }
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -544,19 +556,32 @@ useEffect(() => {
       // 2. Insert the fest row. status is forced to 'pending' here in the
       // client as defense-in-depth; the database's RLS policy enforces the
       // same rule server-side regardless of what a client sends.
-      const { error: insertError } = await supabase.from("fests").insert({
-        fest_name: form.fest_name.trim(),
-        college_name: form.college_name.trim(),
-        district: form.district,
-        start_date: form.start_date,
-        end_date: form.end_date,
-        registration_link: form.registration_link.trim(),
-        poster_image_url: publicUrl,
-        tags: form.tags,
-        status: "pending",
-      });
+    const insertRes = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-fest`,
+    {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      turnstile_token: turnstileToken,
+      fest_name: form.fest_name.trim(),
+      college_name: form.college_name.trim(),
+      district: form.district,
+      start_date: form.start_date,
+      end_date: form.end_date,
+      registration_link: form.registration_link.trim(),
+      poster_image_url: publicUrl,
+      tags: form.tags,
+    }),
+  }
+);
 
-      if (insertError) throw insertError;
+const insertJson = await insertRes.json();
+if (!insertRes.ok) {
+  throw new Error(insertJson.error || "Submission failed");
+}
 
       setSubmitted(true);
     } catch (err) {
@@ -1248,7 +1273,7 @@ export default function App() {
             className="text-sm max-w-sm mx-auto"
             style={{
               color: "#666",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-display)",
               lineHeight: 1.65,
             }}
           >
@@ -1330,51 +1355,63 @@ export default function App() {
         {view === "post" && <PostForm onClose={closePost} />}
       </div>
 
-      <section id="support" className="px-4 sm:px-6 lg:px-16 pb-12 pt-10">
-        <div className="max-w-5xl mx-auto">
-          <h2
-            className="text-xl font-bold mb-3"
-            style={{ fontFamily: "var(--font-display)", color: "#fdf4ff" }}
-          >
-            Support
-          </h2>
-          <p
-            className="text-sm leading-7"
-            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
-          >
-            Need help finding the right fest or want to share feedback? Reach out to
-            us at <a href="mailto:hello@festkerala.com" className="text-violet-300 underline">hello@festkerala.com</a>.
-            We&apos;re happy to help with event listings, poster submissions,
-            and campus fest guidance.
-          </p>
-        </div>
-      </section>
+      <section className="px-4 sm:px-6 lg:px-16 pt-14 pb-16" style={{ borderTop: "1px solid #1e1e1e" }}>
+  <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div
+      id="support"
+      className="rounded-2xl p-6"
+      style={{ background: "#111", border: "1px solid #2a2a2a" }}
+    >
+      <h2
+        className="text-white font-bold text-lg mb-3"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        Support
+      </h2>
+      <p
+        className="text-sm leading-7"
+        style={{ color: "#999", fontFamily: "var(--font-display)" }}
+      >
+        Need help finding the right fest or want to share feedback? Reach out
+        to us at{" "}
+        <a href="mailto:hello@festkerala.com" className="text-violet-300 underline">
+          hello@festkerala.com
+        </a>
+        . We're happy to help with event listings, poster submissions, and
+        campus fest guidance.
+      </p>
+    </div>
 
-      <section id="about" className="px-4 sm:px-6 lg:px-16 pb-16">
-        <div className="max-w-5xl mx-auto">
-          <h2
-            className="text-xl font-bold mb-3"
-            style={{ fontFamily: "var(--font-display)", color: "#fdf4ff" }}
-          >
-            About Fest Kerala
-          </h2>
-          <p
-            className="text-sm leading-7 mb-4"
-            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
-          >
-            Fest Kerala is a curated directory of college festivals across Kerala.
-            We collect approved events, posters, and registration links so students
-            and organizers can discover upcoming cultural, technical, and arts fests.
-          </p>
-          <p
-            className="text-sm leading-7"
-            style={{ color: "#c8c8d0", fontFamily: "var(--font-display)" }}
-          >
-            This site is built to keep event discovery simple, accessible, and
-            beautifully presented for every fest season.
-          </p>
-        </div>
-      </section>
+    <div
+      id="about"
+      className="rounded-2xl p-6"
+      style={{ background: "#111", border: "1px solid #2a2a2a" }}
+    >
+      <h2
+        className="text-white font-bold text-lg mb-3"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        About Fest Kerala
+      </h2>
+      <p
+        className="text-sm leading-7 mb-3"
+        style={{ color: "#999", fontFamily: "var(--font-display)" }}
+      >
+        Fest Kerala is a curated directory of college festivals across
+        Kerala. We collect approved events, posters, and registration links
+        so students and organizers can discover upcoming cultural, technical,
+        and arts fests.
+      </p>
+      <p
+        className="text-sm leading-7"
+        style={{ color: "#999", fontFamily: "var(--font-display)" }}
+      >
+        This site is built to keep event discovery simple, accessible, and
+        beautifully presented for every fest season.
+      </p>
+    </div>
+  </div>
+</section>
     </div>
   );
 }
