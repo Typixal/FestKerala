@@ -1374,7 +1374,7 @@ export default function App() {
       >
         Need help finding the right fest or want to share feedback? Reach out
         to us at{" "}
-        <a href="mailto:hello@festkerala.com" className="text-violet-300 underline">
+        <a href="mailto:helpfestkerala@gmail.com" className="text-violet-300 underline">
           hello@festkerala.com
         </a>
         . We're happy to help with event listings, poster submissions, and
