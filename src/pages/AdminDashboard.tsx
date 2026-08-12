@@ -8,6 +8,10 @@ import {
   type Category,
 } from "../types";
 
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function useAuthedUserEmail() {
   const [email, setEmail] = useState<string>("");
   useEffect(() => {
@@ -17,6 +21,7 @@ function useAuthedUserEmail() {
   }, []);
   return email;
 }
+
 
 function EditableFest({
   fest,
@@ -52,6 +57,20 @@ function EditableFest({
   const save = async () => {
     setBusy("save");
     setError(null);
+    
+     try {
+      const parsed = new URL(draft.registration_link.trim());
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        setError("Registration link must start with http:// or https://");
+        setBusy(null);
+        return;
+      }
+    } catch {
+      setError("Registration link is not a valid URL.");
+      setBusy(null);
+      return;
+    }
+
     const { error } = await supabase
       .from("fests")
       .update({
@@ -407,13 +426,14 @@ export default function AdminDashboard() {
   }, []);
 
   const loadApproved = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    const { data, error } = await supabase
-      .from("fests")
-      .select("*")
-      .eq("status", "approved")
-      .order("start_date", { ascending: true });
+      setLoading(true);
+      setLoadError(null);
+      const { data, error } = await supabase
+        .from("fests")
+        .select("*")
+        .eq("status", "approved")
+        .gte("end_date", today())
+        .order("start_date", { ascending: true });
     if (error) {
       console.error(error);
       setLoadError("Couldn't load live fests.");
