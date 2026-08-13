@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap");
+@import "tailwindcss";
 
 @theme {
-  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
-  --font-mono: 'DM Mono', monospace;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-mono: "DM Mono", monospace;
 
   --color-void: #0a0a0a;
   --color-surface: #111111;
@@ -15,7 +15,9 @@
   --color-text: #f2f2f2;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -35,9 +37,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 0; background: transparent; }
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
 
-/* Glow button */
+/* Buttons */
 .btn-glow {
   background: #7c3aed;
   color: #fff;
@@ -49,16 +54,25 @@ body {
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(124, 58, 237, 0.45), 0 0 40px rgba(124, 58, 237, 0.15);
-  transition: box-shadow 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+  box-shadow:
+    0 0 20px rgba(124, 58, 237, 0.45),
+    0 0 40px rgba(124, 58, 237, 0.15);
+  transition:
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
   white-space: nowrap;
 }
 .btn-glow:hover {
-  box-shadow: 0 0 28px rgba(124, 58, 237, 0.65), 0 0 56px rgba(124, 58, 237, 0.25);
+  box-shadow:
+    0 0 28px rgba(124, 58, 237, 0.65),
+    0 0 56px rgba(124, 58, 237, 0.25);
   opacity: 0.95;
   transform: translateY(-1px);
 }
-.btn-glow:active { transform: translateY(0); }
+.btn-glow:active {
+  transform: translateY(0);
+}
 
 /* FAB */
 .btn-fab {
@@ -76,15 +90,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(124, 58, 237, 0.55), 0 4px 16px rgba(0,0,0,0.5);
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow:
+    0 0 20px rgba(124, 58, 237, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 .btn-fab:hover {
   transform: scale(1.08);
-  box-shadow: 0 0 32px rgba(124, 58, 237, 0.7), 0 4px 24px rgba(0,0,0,0.5);
+  box-shadow:
+    0 0 32px rgba(124, 58, 237, 0.7),
+    0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
-/*header*/
+/* Header */
 .live-dot {
   width: 6px;
   height: 6px;
@@ -95,31 +115,40 @@ body {
 }
 
 @keyframes live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.55); }
-  70%  { box-shadow: 0 0 0 6px rgba(167, 139, 250, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(167, 139, 250, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(167, 139, 250, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live-dot { animation: none; }
+  .live-dot {
+    animation: none;
+  }
 }
 
-/* Card hover */
+/* Card */
 .fest-card {
-  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              box-shadow 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 0.25s ease;
 }
 .fest-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
-/* Modal backdrop */
+/* Modal */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0,0,0,0.82);
+  background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -127,7 +156,7 @@ body {
   padding: 16px;
 }
 
-/* Form input */
+/* Form */
 .field {
   width: 100%;
   background: #1a1a1a;
@@ -140,8 +169,12 @@ body {
   outline: none;
   transition: border-color 0.15s;
 }
-.field:focus { border-color: #7c3aed; }
-.field::placeholder { color: #555; }
+.field:focus {
+  border-color: #7c3aed;
+}
+.field::placeholder {
+  color: #555;
+}
 .field-label {
   display: block;
   font-size: 12px;
@@ -152,14 +185,18 @@ body {
   margin-bottom: 6px;
   font-family: var(--font-mono);
 }
-select.field option { background: #1a1a1a; }
+select.field option {
+  background: #1a1a1a;
+}
 
 /* Drop zone */
 .dropzone {
   border: 2px dashed #333;
   border-radius: 12px;
   background: #141414;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   cursor: pointer;
   min-height: 180px;
   width: 100%;
@@ -170,7 +207,8 @@ select.field option { background: #1a1a1a; }
   max-width: 100%;
   object-fit: contain;
 }
-.dropzone.active, .dropzone:hover {
+.dropzone.active,
+.dropzone:hover {
   border-color: #7c3aed;
-  background: rgba(124,58,237,0.05);
+  background: rgba(124, 58, 237, 0.05);
 }

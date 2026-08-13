@@ -22,7 +22,6 @@ function useAuthedUserEmail() {
   return email;
 }
 
-
 function EditableFest({
   fest,
   mode,
@@ -57,8 +56,8 @@ function EditableFest({
   const save = async () => {
     setBusy("save");
     setError(null);
-    
-     try {
+
+    try {
       const parsed = new URL(draft.registration_link.trim());
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
         setError("Registration link must start with http:// or https://");
@@ -114,6 +113,13 @@ function EditableFest({
       return;
     setBusy("reject");
     setError(null);
+    // Log the removal first so the organizer's status link can show
+    // "rejected" instead of a bare "not found" once the row is gone.
+    // Best-effort: if this insert fails we still proceed with the delete
+    // rather than blocking moderation on it.
+    await supabase
+      .from("fest_removals")
+      .insert({ id: fest.id, fest_name: fest.fest_name, reason: "rejected" });
     const { error } = await supabase.from("fests").delete().eq("id", fest.id);
     setBusy(null);
     if (error) {
@@ -132,6 +138,11 @@ function EditableFest({
       return;
     setBusy("unlist");
     setError(null);
+    // Same as reject — log before deleting so a status-link check doesn't
+    // look identical to a fest that was never approved at all.
+    await supabase
+      .from("fest_removals")
+      .insert({ id: fest.id, fest_name: fest.fest_name, reason: "unlisted" });
     const { error } = await supabase.from("fests").delete().eq("id", fest.id);
     setBusy(null);
     if (error) {
@@ -426,14 +437,14 @@ export default function AdminDashboard() {
   }, []);
 
   const loadApproved = useCallback(async () => {
-      setLoading(true);
-      setLoadError(null);
-      const { data, error } = await supabase
-        .from("fests")
-        .select("*")
-        .eq("status", "approved")
-        .gte("end_date", today())
-        .order("start_date", { ascending: true });
+    setLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from("fests")
+      .select("*")
+      .eq("status", "approved")
+      .gte("end_date", today())
+      .order("start_date", { ascending: true });
     if (error) {
       console.error(error);
       setLoadError("Couldn't load live fests.");
@@ -444,8 +455,7 @@ export default function AdminDashboard() {
     setLoading(false);
   }, []);
 
-  // Load each tab's data lazily, the first time it's opened (pending loads
-  // immediately since it's the default tab on mount).
+  // Lazy-load each tab's data (load when tab is first opened)
   useEffect(() => {
     setSelected(new Set());
     if (tab === "pending" && !pendingLoaded) loadPending();
@@ -465,7 +475,7 @@ export default function AdminDashboard() {
   };
   const allSelected = list.length > 0 && selected.size === list.length;
   const toggleSelectAll = () => {
-  setSelected(allSelected ? new Set() : new Set(list.map((f) => f.id)));
+    setSelected(allSelected ? new Set() : new Set(list.map((f) => f.id)));
   };
   const removeFromList = (id: string) => {
     setList((p) => p.filter((f) => f.id !== id));
@@ -505,6 +515,14 @@ export default function AdminDashboard() {
     )
       return;
     setBulkBusy(true);
+    const toRemove = pending.filter((f) => selected.has(f.id));
+    await supabase.from("fest_removals").insert(
+      toRemove.map((f) => ({
+        id: f.id,
+        fest_name: f.fest_name,
+        reason: "rejected",
+      })),
+    );
     const { error } = await supabase
       .from("fests")
       .delete()
@@ -527,6 +545,14 @@ export default function AdminDashboard() {
     )
       return;
     setBulkBusy(true);
+    const toRemove = approved.filter((f) => selected.has(f.id));
+    await supabase.from("fest_removals").insert(
+      toRemove.map((f) => ({
+        id: f.id,
+        fest_name: f.fest_name,
+        reason: "unlisted",
+      })),
+    );
     const { error } = await supabase
       .from("fests")
       .delete()
@@ -579,7 +605,6 @@ export default function AdminDashboard() {
         </button>
       </header>
 
-      {/* Tabs */}
       <div
         className="flex gap-1 px-4 pt-4 max-w-2xl mx-auto"
         style={{ fontFamily: "var(--font-mono)" }}
@@ -622,7 +647,10 @@ export default function AdminDashboard() {
             className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            <label className="flex items-center gap-2 text-xs cursor-pointer " style={{ color: "#666" , fontFamily: "var(--font-display)"}}>
+            <label
+              className="flex items-center gap-2 text-xs cursor-pointer "
+              style={{ color: "#666", fontFamily: "var(--font-display)" }}
+            >
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -688,7 +716,7 @@ export default function AdminDashboard() {
           >
             Loading…
           </p>
-        ) : loadError ? ( 
+        ) : loadError ? (
           <p
             className="text-center py-16 text-sm"
             style={{ color: "#c96", fontFamily: "var(--font-mono)" }}

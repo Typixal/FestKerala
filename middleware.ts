@@ -1,12 +1,10 @@
 import { next } from "@vercel/functions";
 
-// process is a real global provided by Vercel's Edge Runtime at runtime,
-// but its type isn't declared unless @types/node (or similar) is installed.
-// This narrow declaration covers only what this file actually uses, so
-// TypeScript type-checks cleanly without pulling in the full Node types.
-// IMPORTANT: access process directly (not via globalThis.process) — Edge
-// Runtime provides it as an injected global binding, which is not
-// guaranteed to also appear as an enumerable property on globalThis.
+/**
+ * Edge middleware: serve simple OG HTML for known crawler User-Agents.
+ * Non-crawler requests are forwarded to the SPA via `next()`.
+ */
+
 declare const process: {
   env: {
     SUPABASE_URL?: string;
@@ -15,42 +13,12 @@ declare const process: {
   };
 };
 
-// Vercel Routing Middleware — runs before the SPA is served.
-//
-// Purpose: WhatsApp/Instagram/Facebook/Twitter/Telegram link-preview
-// crawlers don't execute JavaScript. They fetch the URL once and read
-// whatever <meta property="og:..."> tags are present in that first HTML
-// response. Since this is a client-rendered Vite SPA, index.html is
-// identical for every route — so without this middleware, every shared
-// fest link would show the same generic (or blank) preview.
-//
-// This middleware only intercepts requests to /fest/:id whose User-Agent
-// matches a known crawler. For those, it fetches the fest from Supabase
-// and returns a small standalone HTML document with fest-specific OG tags.
-// Real browsers (i.e. anyone not matching the crawler patterns) are passed
-// straight through to the normal SPA via next(), completely untouched.
-//
-// This project is NOT Next.js — Vercel's Routing Middleware is
-// framework-agnostic here, so this uses the plain Request/Response Web
-// APIs (both available in the global scope, no import needed) plus the
-// small @vercel/functions helper package, rather than next/server (which
-// is Next.js-only and would not work in this Vite project).
-//
-// Config note: this file runs on Vercel's Edge Runtime, NOT in the Vite
-// build — it does not have access to import.meta.env. Set these two values
-// separately in the Vercel dashboard under Project Settings → Environment
-// Variables (same public anon-key values as VITE_SUPABASE_URL /
-// VITE_SUPABASE_ANON_KEY are fine to reuse — the anon key is public by
-// design):
-//   SUPABASE_URL
-//   SUPABASE_ANON_KEY
-
 export const config = {
   matcher: "/fest/:id*",
 };
 
 const CRAWLER_USER_AGENTS = [
-  "facebookexternalhit", // Facebook + Instagram (shares FB's crawler)
+  "facebookexternalhit",
   "whatsapp",
   "twitterbot",
   "telegrambot",
@@ -147,11 +115,7 @@ function fallbackResponse(url: string): Response {
 export default async function middleware(request: Request) {
   const userAgent = request.headers.get("user-agent");
 
-  // Real users (and anything not recognized as a crawler) pass straight
-  // through to the normal SPA — this middleware never touches their request.
-  if (!isCrawler(userAgent)) {
-    return next();
-  }
+  if (!isCrawler(userAgent)) return next();
 
   const pathname = new URL(request.url).pathname;
   const id = pathname.split("/fest/")[1]?.split("/")[0];
