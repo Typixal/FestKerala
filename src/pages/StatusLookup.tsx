@@ -97,7 +97,7 @@ export default function StatusLookup() {
           <p
             style={{
               color: "#666",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-display)",
               fontSize: 14,
             }}
           >
@@ -109,7 +109,7 @@ export default function StatusLookup() {
           <p
             style={{
               color: "#c96",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-display)",
               fontSize: 14,
             }}
           >
@@ -129,7 +129,7 @@ export default function StatusLookup() {
               className="text-sm"
               style={{
                 color: "#888",
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-display)",
                 lineHeight: 1.6,
               }}
             >
@@ -160,7 +160,7 @@ export default function StatusLookup() {
             >
               <span
                 style={{
-                  fontFamily: "var(--font-mono)",
+                  fontFamily: "var(--font-display)",
                   fontSize: 18,
                   color:
                     copy.tone === "good"
@@ -183,7 +183,7 @@ export default function StatusLookup() {
 
             <p
               className="text-xs mb-4"
-              style={{ color: "#a78bfa", fontFamily: "var(--font-mono)" }}
+              style={{ color: "#a78bfa", fontFamily: "var(--font-display)" }}
             >
               {copy.title}
             </p>
@@ -191,7 +191,7 @@ export default function StatusLookup() {
             {result.college_name && (
               <p
                 className="text-xs mb-1"
-                style={{ color: "#888", fontFamily: "var(--font-mono)" }}
+                style={{ color: "#888", fontFamily: "var(--font-display)" }}
               >
                 {result.college_name}
               </p>
@@ -199,7 +199,7 @@ export default function StatusLookup() {
             {result.start_date && result.end_date && (
               <p
                 className="text-xs mb-4"
-                style={{ color: "#666", fontFamily: "var(--font-mono)" }}
+                style={{ color: "#666", fontFamily: "var(--font-display)" }}
               >
                 {formatDateRange(result.start_date, result.end_date)}
               </p>
@@ -209,7 +209,7 @@ export default function StatusLookup() {
               className="text-sm mb-6"
               style={{
                 color: "#888",
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-display)",
                 lineHeight: 1.6,
               }}
             >
@@ -234,7 +234,7 @@ export default function StatusLookup() {
               <Link
                 to="/"
                 className="text-xs"
-                style={{ color: "#999", fontFamily: "var(--font-mono)" }}
+                style={{ color: "#999", fontFamily: "var(--font-display)" }}
               >
                 Back to Home
               </Link>
