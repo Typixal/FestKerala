@@ -16,7 +16,7 @@ import {
   type Category,
 } from "./types";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -37,7 +37,7 @@ function formatDateRange(start: string, end: string) {
 async function compressImage(
   file: File,
   maxDim = 1600,
-  quality = 0.8
+  quality = 0.8,
 ): Promise<File> {
   if (file.size < 300 * 1024 || file.type === "image/gif") return file;
 
@@ -59,7 +59,7 @@ async function compressImage(
   bitmap.close();
 
   const blob: Blob | null = await new Promise((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", quality)
+    canvas.toBlob(resolve, "image/jpeg", quality),
   );
   if (!blob) return file;
 
@@ -97,7 +97,7 @@ function useColumns() {
   return cols;
 }
 
-// ─── TagPill ────────────────────────────────────────────────────────────────
+// TagPill component
 
 function TagPill({ tag }: { tag: Category }) {
   return (
@@ -110,7 +110,7 @@ function TagPill({ tag }: { tag: Category }) {
   );
 }
 
-// ─── FestCard ───────────────────────────────────────────────────────────────
+// FestCard component
 
 function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
   const [loaded, setLoaded] = useState(false);
@@ -172,7 +172,7 @@ function FestCard({ fest, onClick }: { fest: Fest; onClick: () => void }) {
   );
 }
 
-// ─── MasonryGrid ────────────────────────────────────────────────────────────
+// MasonryGrid component
 
 function MasonryGrid({
   fests,
@@ -203,7 +203,7 @@ function MasonryGrid({
   );
 }
 
-// ─── DetailModal ────────────────────────────────────────────────────────────
+// DetailModal component
 
 function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -255,15 +255,17 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
           className="relative flex items-center justify-center"
           style={{ maxHeight: 420, overflow: "hidden", background: "#000" }}
         >
-          {/* Blurred backdrop fill so portrait posters don't leave bare black bars */}
           <img
             src={fest.poster_image_url}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "blur(24px) brightness(0.5)", transform: "scale(1.1)" }}
+            style={{
+              filter: "blur(24px) brightness(0.5)",
+              transform: "scale(1.1)",
+            }}
           />
-          {/* Actual poster, shown in full — no cropping */}
+
           <img
             src={fest.poster_image_url}
             alt={fest.fest_name}
@@ -366,8 +368,7 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
   );
 }
 
-// ─── Field (shared form field wrapper — must live outside PostForm so it's
-// not redefined on every render, which would remount inputs and drop focus) ─
+// Field: shared form field wrapper (keep outside PostForm to avoid remounts)
 
 function Field({
   id,
@@ -398,7 +399,66 @@ function Field({
   );
 }
 
-// ─── PostForm ───────────────────────────────────────────────────────────────
+// StatusLink: shown on the submit-success screen so an organizer can save
+// or share a link to check their fest's review status later, from any
+// device — the id comes straight from the Edge Function's insert response.
+
+function StatusLink({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/status/${id}`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API can fail (permissions, insecure context, etc.) —
+      // the link is still visible and selectable by hand either way.
+    }
+  };
+
+  return (
+    <div
+      className="rounded-xl p-3 mb-6 text-left"
+      style={{ background: "#161616", border: "1px solid #2a2a2a" }}
+    >
+      <p
+        className="text-[10.5px] uppercase tracking-wide mb-2"
+        style={{ color: "#666", fontFamily: "var(--font-mono)" }}
+      >
+        Save this link to check your status later
+      </p>
+      <div className="flex items-center gap-2">
+        <p
+          className="text-xs flex-1 truncate"
+          style={{ color: "#a78bfa", fontFamily: "var(--font-mono)" }}
+        >
+          {url}
+        </p>
+        <button
+          type="button"
+          onClick={copy}
+          className="text-[11px] px-2.5 py-1 rounded-md shrink-0"
+          style={{
+            background: copied
+              ? "rgba(34,197,94,0.15)"
+              : "rgba(124,58,237,0.15)",
+            color: copied ? "#4ade80" : "#a78bfa",
+            border: copied
+              ? "1px solid rgba(34,197,94,0.35)"
+              : "1px solid rgba(124,58,237,0.35)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// PostForm component
 
 type FormState = {
   fest_name: string;
@@ -431,29 +491,30 @@ function PostForm({ onClose }: { onClose: () => void }) {
   >({});
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
-useEffect(() => {
-  const renderWidget = () => {
-    // @ts-ignore
-    if (window.turnstile) {
+  useEffect(() => {
+    const renderWidget = () => {
       // @ts-ignore
-      window.turnstile.render('#turnstile-widget', {
-        sitekey: '0x4AAAAAAEIZCCP9FzJSgZRE',
-        callback: (token: string) => setTurnstileToken(token),
-      });
-    } else {
-      setTimeout(renderWidget, 200);
-    }
-  };
-  renderWidget();
-}, []);  
+      if (window.turnstile) {
+        // @ts-ignore
+        window.turnstile.render("#turnstile-widget", {
+          sitekey: "0x4AAAAAAEIZCCP9FzJSgZRE",
+          callback: (token: string) => setTurnstileToken(token),
+        });
+      } else {
+        setTimeout(renderWidget, 200);
+      }
+    };
+    renderWidget();
+  }, []);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const handleBackdrop = (e: React.MouseEvent) => {
-  if (e.target === backdropRef.current) onClose();
+    if (e.target === backdropRef.current) onClose();
   };
 
   const set = (k: keyof FormState, v: string | File | null | Category[]) => {
@@ -503,31 +564,28 @@ useEffect(() => {
     if (form.start_date && form.end_date && form.end_date < form.start_date)
       e.end_date = "End date must be after start date";
     if (!form.registration_link.trim()) {
-          e.registration_link = "Required";
-    } 
-    else {
+      e.registration_link = "Required";
+    } else {
       try {
         const parsed = new URL(form.registration_link.trim());
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        e.registration_link = "Link must start with http:// or https://";
-      }
-    }   
-    catch {
-      e.registration_link = "Enter a valid URL (e.g. https://…)";
+          e.registration_link = "Link must start with http:// or https://";
+        }
+      } catch {
+        e.registration_link = "Enter a valid URL (e.g. https://…)";
       }
     }
-    
+
     if (!form.poster_file) e.poster_file = "Please upload a poster image.";
     return e;
   };
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!turnstileToken) {
-    setSubmitError("Please complete the CAPTCHA before submitting.");
-    return;
-  }
+      setSubmitError("Please complete the CAPTCHA before submitting.");
+      return;
+    }
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -542,7 +600,7 @@ useEffect(() => {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
 
-      // 1. Upload poster to Supabase Storage
+      // Upload poster to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("posters")
         .upload(path, file, { contentType: file.type });
@@ -553,36 +611,35 @@ useEffect(() => {
         data: { publicUrl },
       } = supabase.storage.from("posters").getPublicUrl(path);
 
-      // 2. Insert the fest row. status is forced to 'pending' here in the
-      // client as defense-in-depth; the database's RLS policy enforces the
-      // same rule server-side regardless of what a client sends.
-    const insertRes = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-fest`,
-    {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({
-      turnstile_token: turnstileToken,
-      fest_name: form.fest_name.trim(),
-      college_name: form.college_name.trim(),
-      district: form.district,
-      start_date: form.start_date,
-      end_date: form.end_date,
-      registration_link: form.registration_link.trim(),
-      poster_image_url: publicUrl,
-      tags: form.tags,
-    }),
-  }
-);
+      // Insert the fest row (server enforces status 'pending')
+      const insertRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-fest`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            turnstile_token: turnstileToken,
+            fest_name: form.fest_name.trim(),
+            college_name: form.college_name.trim(),
+            district: form.district,
+            start_date: form.start_date,
+            end_date: form.end_date,
+            registration_link: form.registration_link.trim(),
+            poster_image_url: publicUrl,
+            tags: form.tags,
+          }),
+        },
+      );
 
-const insertJson = await insertRes.json();
-if (!insertRes.ok) {
-  throw new Error(insertJson.error || "Submission failed");
-}
+      const insertJson = await insertRes.json();
+      if (!insertRes.ok) {
+        throw new Error(insertJson.error || "Submission failed");
+      }
 
+      setSubmittedId(insertJson.data?.id ?? null);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -643,6 +700,9 @@ if (!insertRes.ok) {
             Your fest is pending review —<br />
             we'll list it on FestKerala soon.
           </p>
+
+          {submittedId && <StatusLink id={submittedId} />}
+
           <button className="btn-glow" onClick={onClose}>
             Back to Home
           </button>
@@ -650,7 +710,6 @@ if (!insertRes.ok) {
       </div>
     );
   }
-
 
   return (
     <div
@@ -701,7 +760,6 @@ if (!insertRes.ok) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-5">
-          {/* Poster upload */}
           <div>
             <label className="field-label">Poster Image</label>
             <div
@@ -787,7 +845,6 @@ if (!insertRes.ok) {
             )}
           </div>
 
-          {/* Text fields */}
           <Field id="fest_name" label="Fest Name *" error={errors.fest_name}>
             <input
               id="fest_name"
@@ -859,7 +916,6 @@ if (!insertRes.ok) {
             </Field>
           </div>
 
-          {/* Tags */}
           <div>
             <label className="field-label">Category Tags</label>
             <div className="flex flex-wrap gap-2 mt-1">
@@ -935,7 +991,7 @@ if (!insertRes.ok) {
   );
 }
 
-// ─── Header ─────────────────────────────────────────────────────────────────
+// Header component
 
 function Header({
   onPostClick,
@@ -955,10 +1011,14 @@ function Header({
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-16 py-3 transition-all duration-300"
       style={{
-        background: scrolled ? "rgba(10, 10, 10, 0.76)" : "rgba(15, 15, 15, 0.56)",
+        background: scrolled
+          ? "rgba(10, 10, 10, 0.76)"
+          : "rgba(15, 15, 15, 0.56)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
-        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+        borderBottom: scrolled
+          ? "1px solid rgba(255,255,255,0.08)"
+          : "1px solid transparent",
       }}
     >
       <a
@@ -966,7 +1026,11 @@ function Header({
         className="flex items-center gap-2.5"
         style={{ textDecoration: "none" }}
       >
-       <img src={logoUrl} alt="Fest Kerala" className="w-9 h-9 shrink-0 object-contain" />
+        <img
+          src={logoUrl}
+          alt="Fest Kerala"
+          className="w-9 h-9 shrink-0 object-contain"
+        />
         <span
           className="text-white font-extrabold text-[17px] tracking-tight"
           style={{ fontFamily: "var(--font-display)" }}
@@ -1000,9 +1064,6 @@ function Header({
           </a>
         </nav>
 
-        {/* Icon + label on desktop, icon-only on mobile — always visible so
-            there's one consistent way to post, not header-button-on-desktop
-            vs FAB-on-mobile */}
         <button
           onClick={onPostClick}
           className="flex items-center gap-1.5"
@@ -1019,7 +1080,12 @@ function Header({
           }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1v12M1 7h12" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" />
+            <path
+              d="M7 1v12M1 7h12"
+              stroke="#0a0a0a"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </svg>
           <span className="hidden sm:inline">Post an Event</span>
         </button>
@@ -1028,7 +1094,7 @@ function Header({
   );
 }
 
-// ─── FilterBar ───────────────────────────────────────────────────────────────
+// FilterBar component
 
 function FilterBar({
   district,
@@ -1068,7 +1134,7 @@ function FilterBar({
           />
         </div>
 
-        <div className="relative min-w-[170px]">
+        <div className="relative min-w-42.5">
           <select
             value={district}
             onChange={(e) => onDistrictChange(e.target.value)}
@@ -1112,7 +1178,7 @@ function FilterBar({
           className={`text-[13px] px-3 py-1.5 rounded-full border transition ${
             category === "All"
               ? "bg-violet-500/18 text-violet-200 border-violet-500/35"
-              : "bg-[#151515] text-[#ccc] border-[#2a2a2a] hover:border-violet-500/35"
+              : "bg-[#151515] text-[#ccc] border-border hover:border-violet-500/35"
           }`}
           style={{ fontFamily: "var(--font-display)" }}
         >
@@ -1128,7 +1194,7 @@ function FilterBar({
               className={`text-[13px] px-3 py-1.5 rounded-full border transition ${
                 active
                   ? "bg-violet-500/18 text-violet-200 border-violet-500/35"
-                  : "bg-[#151515] text-[#ccc] border-[#2a2a2a] hover:border-violet-500/35"
+                  : "bg-[#151515] text-[#ccc] border-border hover:border-violet-500/35"
               }`}
               style={{ fontFamily: "var(--font-display)" }}
             >
@@ -1149,7 +1215,7 @@ function FilterBar({
   );
 }
 
-// ─── App ─────────────────────────────────────────────────────────────────────
+// App component
 
 type View = "home" | "post";
 
@@ -1190,10 +1256,10 @@ export default function App() {
 
   const filtered = fests
     .filter((fest) =>
-      district === "All Districts" ? true : fest.district === district
+      district === "All Districts" ? true : fest.district === district,
     )
     .filter((fest) =>
-      category === "All" ? true : fest.tags.includes(category)
+      category === "All" ? true : fest.tags.includes(category),
     )
     .filter((fest) => {
       const term = query.trim().toLowerCase();
@@ -1213,8 +1279,7 @@ export default function App() {
   const closePost = () => {
     setView("home");
     requestAnimationFrame(() => window.scrollTo(0, savedScroll.current));
-    // Refresh in case a fest was approved elsewhere while the form was open,
-    // and to keep behavior predictable — cheap since the query is indexed.
+    // Refresh list after closing the post form
     loadFests();
   };
 
@@ -1240,18 +1305,18 @@ export default function App() {
       className="relative overflow-hidden"
       style={{ backgroundColor: "#0a0a0a", minHeight: "100vh" }}
     >
-      {/* Ambient background glow — keeps the black background from reading as
-          "empty/broken" when there are few fests or lots of side padding */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/8 blur-[120px]" />
+        <div className="absolute -top-40 -left-40 h-125 w-125 rounded-full bg-purple-600/15 blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 h-125 w-125 rounded-full bg-fuchsia-600/8 blur-[120px]" />
       </div>
 
       <div className="relative z-10">
         <Header onPostClick={openPost} festCount={fests.length} />
 
-        {/* Hero */}
-        <section id="home" className="pt-24 pb-6 px-4 sm:px-6 lg:px-16 text-center">
+        <section
+          id="home"
+          className="pt-24 pb-6 px-4 sm:px-6 lg:px-16 text-center"
+        >
           <p
             className="text-[11px] tracking-[0.18em] uppercase mb-3"
             style={{ color: "#555", fontFamily: "var(--font-display)" }}
@@ -1292,7 +1357,6 @@ export default function App() {
           total={filtered.length}
         />
 
-        {/* Grid */}
         <div className="px-3 pt-4 pb-24 max-w-6xl mx-auto">
           {loading ? (
             <div
@@ -1332,7 +1396,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Mobile FAB — only on small screens */}
         <button
           className="btn-fab sm:hidden"
           onClick={openPost}
@@ -1355,63 +1418,69 @@ export default function App() {
         {view === "post" && <PostForm onClose={closePost} />}
       </div>
 
-      <section className="px-4 sm:px-6 lg:px-16 pt-14 pb-16" style={{ borderTop: "1px solid #1e1e1e" }}>
-  <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div
-      id="support"
-      className="rounded-2xl p-6"
-      style={{ background: "#111", border: "1px solid #2a2a2a" }}
-    >
-      <h2
-        className="text-white font-bold text-lg mb-3"
-        style={{ fontFamily: "var(--font-display)" }}
+      <section
+        className="px-4 sm:px-6 lg:px-16 pt-14 pb-16"
+        style={{ borderTop: "1px solid #1e1e1e" }}
       >
-        Support
-      </h2>
-      <p
-        className="text-sm leading-7"
-        style={{ color: "#999", fontFamily: "var(--font-display)" }}
-      >
-        Need help finding the right fest or want to share feedback? Reach out
-        to us at{" "}
-        <a href="mailto:helpfestkerala@gmail.com" className="text-violet-300 underline">
-          helpfestkerala@gmail.com
-        </a>
-        . We're happy to help with event listings, poster submissions, and
-        campus fest guidance.
-      </p>
-    </div>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            id="support"
+            className="rounded-2xl p-6"
+            style={{ background: "#111", border: "1px solid #2a2a2a" }}
+          >
+            <h2
+              className="text-white font-bold text-lg mb-3"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Support
+            </h2>
+            <p
+              className="text-sm leading-7"
+              style={{ color: "#999", fontFamily: "var(--font-display)" }}
+            >
+              Need help finding the right fest or want to share feedback? Reach
+              out to us at{" "}
+              <a
+                href="mailto:helpfestkerala@gmail.com"
+                className="text-violet-300 underline"
+              >
+                helpfestkerala@gmail.com
+              </a>
+              . We're happy to help with event listings, poster submissions, and
+              campus fest guidance.
+            </p>
+          </div>
 
-    <div
-      id="about"
-      className="rounded-2xl p-6"
-      style={{ background: "#111", border: "1px solid #2a2a2a" }}
-    >
-      <h2
-        className="text-white font-bold text-lg mb-3"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        About Fest Kerala
-      </h2>
-      <p
-        className="text-sm leading-7 mb-3"
-        style={{ color: "#999", fontFamily: "var(--font-display)" }}
-      >
-        Fest Kerala is a curated directory of college festivals across
-        Kerala. We collect approved events, posters, and registration links
-        so students and organizers can discover upcoming cultural, technical,
-        and arts fests.
-      </p>
-      <p
-        className="text-sm leading-7"
-        style={{ color: "#999", fontFamily: "var(--font-display)" }}
-      >
-        This site is built to keep event discovery simple, accessible, and
-        beautifully presented for every fest season.
-      </p>
-    </div>
-  </div>
-</section>
+          <div
+            id="about"
+            className="rounded-2xl p-6"
+            style={{ background: "#111", border: "1px solid #2a2a2a" }}
+          >
+            <h2
+              className="text-white font-bold text-lg mb-3"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              About Fest Kerala
+            </h2>
+            <p
+              className="text-sm leading-7 mb-3"
+              style={{ color: "#999", fontFamily: "var(--font-display)" }}
+            >
+              Fest Kerala is a curated directory of college festivals across
+              Kerala. We collect approved events, posters, and registration
+              links so students and organizers can discover upcoming cultural,
+              technical, and arts fests.
+            </p>
+            <p
+              className="text-sm leading-7"
+              style={{ color: "#999", fontFamily: "var(--font-display)" }}
+            >
+              This site is built to keep event discovery simple, accessible, and
+              beautifully presented for every fest season.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

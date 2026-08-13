@@ -1,0 +1,73 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glowMain" cx="50%" cy="38%" r="55%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#7c3aed" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowEdgeTL" cx="0%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowEdgeBR" cx="100%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#c026d3" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#c026d3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="fadeMask" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="white" stop-opacity="0"/>
+      <stop offset="100%" stop-color="white" stop-opacity="1"/>
+    </linearGradient>
+    <filter id="badgeShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#7c3aed" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- Base -->
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Ambient glows, matching the homepage's corner-bleed treatment -->
+  <rect width="1200" height="630" fill="url(#glowEdgeTL)"/>
+  <rect width="1200" height="630" fill="url(#glowEdgeBR)"/>
+  <rect width="1200" height="630" fill="url(#glowMain)"/>
+
+  <!-- Faint dot grid texture, echoes "map pin" / discovery theme without literal icons -->
+  <g opacity="0.05">
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#ffffff"/>
+    </pattern>
+    <rect width="1200" height="630" fill="url(#dots)"/>
+  </g>
+
+  <!-- Top hairline, matches header border treatment -->
+  <rect x="0" y="0" width="1200" height="1" fill="#ffffff" opacity="0.06"/>
+
+  <!-- Eyebrow -->
+  <text x="600" y="168" text-anchor="middle" font-family="DM Mono, monospace" font-size="17" letter-spacing="5" fill="#8b8b93">KERALA · COLLEGE FESTS</text>
+
+  <!-- Badge mark -->
+  <g transform="translate(600, 246)" filter="url(#badgeShadow)">
+    <rect x="-34" y="-34" width="68" height="68" rx="18" fill="url(#badgeGrad)"/>
+    <path d="M0 -20 L20 -8 V16 L0 28 L-20 16 V-8 Z" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round"/>
+    <circle cx="0" cy="4" r="6.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="600" y="368" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="84" letter-spacing="-1.5" fill="#f2f2f2">Fest<tspan fill="#a78bfa">Kerala</tspan></text>
+
+  <!-- Tagline -->
+  <text x="600" y="424" text-anchor="middle" font-family="DM Mono, monospace" font-size="21" fill="#8b8b93">Discover Kerala's college fests — every district, one place</text>
+
+  <!-- Bottom divider row: district chips as a quiet signature, not decoration -->
+  <g font-family="DM Mono, monospace" font-size="15" fill="#5a5a62">
+    <text x="600" y="512" text-anchor="middle" letter-spacing="0.5">Tech · Music · Arts · Culture · Dance · Business</text>
+  </g>
+
+  <rect x="500" y="548" width="200" height="1" fill="#ffffff" opacity="0.08" x1="0"/>
+  <line x1="500" y1="548" x2="700" y2="548" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1"/>
+
+  <text x="600" y="588" text-anchor="middle" font-family="DM Mono, monospace" font-size="16" fill="#555558" letter-spacing="1">fest-kerala.vercel.app</text>
+</svg>
