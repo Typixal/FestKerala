@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import Admin from "./pages/Admin";
+import StatusLookup from "./pages/StatusLookup";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -11,6 +12,7 @@ createRoot(document.getElementById("root")!).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/fest/:id" element={<App />} />
+        <Route path="/status/:id" element={<StatusLookup />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
