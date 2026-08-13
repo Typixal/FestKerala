@@ -1444,7 +1444,7 @@ export default function App() {
                 href="mailto:helpfestkerala@gmail.com"
                 className="text-violet-300 underline"
               >
-                help@festkerala.com
+                helpfestkerala@gmail.com
               </a>
               . We're happy to help with event listings, poster submissions, and
               campus fest guidance.
