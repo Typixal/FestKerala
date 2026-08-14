@@ -484,8 +484,40 @@ const EMPTY_FORM: FormState = {
   tags: [],
 };
 
+const DRAFT_KEY = "festkerala_post_draft";
+
+// Only these fields are safe to persist — poster_file/poster_preview are
+// excluded since Files and blob: URLs can't survive a page reload.
+type PersistedDraft = Omit<FormState, "poster_file" | "poster_preview">;
+
+function loadDraft(): PersistedDraft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(form: FormState) {
+  const { poster_file, poster_preview, ...rest } = form;
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
+  } catch {
+    // storage full or unavailable — fail silently, not critical
+  }
+}
+
+function clearDraft() {
+  sessionStorage.removeItem(DRAFT_KEY);
+}
+
 function PostForm({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => {
+  const draft = loadDraft();
+  return draft ? { ...EMPTY_FORM, ...draft } : EMPTY_FORM;
+});
+  const [restoredDraft] = useState(() => loadDraft() !== null);
   const [errors, setErrors] = useState<
     Partial<Record<keyof FormState, string>>
   >({});
@@ -506,6 +538,11 @@ function PostForm({ onClose }: { onClose: () => void }) {
     };
     renderWidget();
   }, []);
+
+  useEffect(() => {
+  saveDraft(form);
+}, [form]);
+
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -592,7 +629,8 @@ function PostForm({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    setSubmitting(true);
+    setSubmitted(true);
+    clearDraft();
     setSubmitError(null);
 
     try {
@@ -758,6 +796,16 @@ function PostForm({ onClose }: { onClose: () => void }) {
             </svg>
           </button>
         </div>
+
+
+    {restoredDraft && (
+      <p
+        className="px-5 pt-3 text-xs"
+        style={{ color: "#a78bfa", fontFamily: "var(--font-mono)" }}
+      >
+        Restored your unsaved draft — please re-upload your poster.
+      </p>
+    )}
 
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-5">
           <div>
