@@ -1,4 +1,8 @@
 
+-- Optional long-form copy shown on /fest/:id.
+alter table if exists public.fests
+  add column if not exists description text;
+
 create table if not exists fest_removals (
   id uuid primary key,
   fest_name text not null,
