@@ -207,8 +207,32 @@ function MasonryGrid({
 
 function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
   const backdropRef = useRef<HTMLDivElement>(null);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const handleBackdrop = (e: React.MouseEvent) => {
     if (e.target === backdropRef.current) onClose();
+  };
+
+  const shareFest = async () => {
+    const shareText = `${fest.fest_name} at ${fest.college_name} — ${formatDateRange(fest.start_date, fest.end_date)}, ${fest.district}.`;
+    const shareData = {
+      title: `${fest.fest_name} | Fest Kerala`,
+      text: shareText,
+      url: fest.registration_link,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(`${shareText}\n${fest.registration_link}`);
+      setShareStatus("copied");
+      window.setTimeout(() => setShareStatus("idle"), 2000);
+    } catch (error) {
+      if ((error as DOMException).name !== "AbortError") {
+        console.error("Unable to share fest", error);
+      }
+    }
   };
 
   useEffect(() => {
@@ -347,21 +371,44 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
             </div>
           </div>
 
-          <a
-            href={fest.registration_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-glow block text-center w-full"
-            style={{
-              display: "block",
-              textDecoration: "none",
-              padding: "12px 20px",
-              borderRadius: 12,
-              fontSize: 14,
-            }}
-          >
-            Register / Event Link →
-          </a>
+          <div className="flex items-stretch gap-2">
+            <a
+              href={fest.registration_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-glow block text-center flex-1"
+              style={{
+                display: "block",
+                textDecoration: "none",
+                padding: "12px 20px",
+                borderRadius: 12,
+                fontSize: 14,
+              }}
+            >
+              Register / Event Link →
+            </a>
+            <button
+              type="button"
+              onClick={shareFest}
+              className="flex h-11 w-11 items-center justify-center shrink-0 rounded-full transition-colors"
+              style={{
+                color: shareStatus === "copied" ? "#86efac" : "#d4d4d4",
+                background:
+                  shareStatus === "copied" ? "rgba(34,197,94,0.12)" : "#1a1a1a",
+                border:
+                  shareStatus === "copied"
+                    ? "1px solid rgba(34,197,94,0.35)"
+                    : "1px solid #333",
+                cursor: "pointer",
+              }}
+              aria-label={shareStatus === "copied" ? "Fest link copied" : "Share this fest"}
+              title={shareStatus === "copied" ? "Copied" : "Share fest"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 16V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

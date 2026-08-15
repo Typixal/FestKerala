@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
       turnstile_token,
       fest_name,
       college_name,
+      description,
       district,
       start_date,
       end_date,
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
       .insert({
         fest_name,
         college_name,
+        description: description || null,
         district,
         start_date,
         end_date,
