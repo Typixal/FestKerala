@@ -664,7 +664,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
     return e;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!turnstileToken) {
       setSubmitError("Please complete the CAPTCHA before submitting.");
@@ -676,8 +676,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    setSubmitted(true);
-    clearDraft();
+    setSubmitting(true);
     setSubmitError(null);
 
     try {
@@ -726,6 +725,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
 
       setSubmittedId(insertJson.data?.id ?? null);
       setSubmitted(true);
+      clearDraft();
     } catch (err) {
       console.error(err);
       setSubmitError(
@@ -735,7 +735,6 @@ function PostForm({ onClose }: { onClose: () => void }) {
       setSubmitting(false);
     }
   };
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
