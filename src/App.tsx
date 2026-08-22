@@ -370,7 +370,14 @@ function DetailModal({ fest, onClose }: { fest: Fest; onClose: () => void }) {
               </span>
             </div>
           </div>
-
+          <div className="mb-6">
+            <p style={{ color: "#555", fontFamily: "var(--font-mono)", fontSize: 11, marginBottom: 4 }}>
+              ABOUT THE FEST
+            </p>
+            <p style={{ color: "#ccc", fontFamily: "var(--font-display)", fontSize: 13, lineHeight: 1.6 }}>
+              {fest.description || "No description provided."}
+            </p>
+          </div>
           <div className="flex items-stretch gap-2">
             <a
               href={fest.registration_link}
@@ -514,6 +521,7 @@ type FormState = {
   start_date: string;
   end_date: string;
   registration_link: string;
+  description: string;
   poster_file: File | null;
   poster_preview: string;
   tags: Category[];
@@ -525,6 +533,7 @@ const EMPTY_FORM: FormState = {
   district: "",
   start_date: "",
   end_date: "",
+  description: "",
   registration_link: "",
   poster_file: null,
   poster_preview: "",
@@ -643,6 +652,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
     if (!form.fest_name.trim()) e.fest_name = "Required";
     if (!form.college_name.trim()) e.college_name = "Required";
     if (!form.district) e.district = "Select a district";
+    if (!form.description.trim()) e.description = "Required";
     if (!form.start_date) e.start_date = "Required";
     if (!form.end_date) e.end_date = "Required";
     if (form.start_date && form.end_date && form.end_date < form.start_date)
@@ -659,6 +669,9 @@ function PostForm({ onClose }: { onClose: () => void }) {
         e.registration_link = "Enter a valid URL (e.g. https://…)";
       }
     }
+    if (!form.description.trim()) e.description = "Required";
+    if (form.description.trim().length > 100)
+      e.description = "Keep it under 100 characters";
 
     if (!form.poster_file) e.poster_file = "Please upload a poster image.";
     return e;
@@ -714,6 +727,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             registration_link: form.registration_link.trim(),
             poster_image_url: publicUrl,
             tags: form.tags,
+             description: form.description.trim(),
           }),
         },
       );
@@ -1048,6 +1062,20 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={(e) => set("registration_link", e.target.value)}
             />
           </Field>
+          <Field id="description" label="About the Fest *" error={errors.description}>
+                <textarea
+                  id="description"
+                  className="field"
+                  rows={3}
+                  maxLength={100}
+                  placeholder="What makes this fest worth attending?"
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                />
+                <p className="text-xs mt-1" style={{ color: "#555", fontFamily: "var(--font-mono)" }}>
+                  {form.description.length}/100
+                </p>
+          </Field>
 
           {submitError && (
             <p
@@ -1157,7 +1185,28 @@ function Header({
             About
           </a>
         </nav>
-
+        <a          
+          href="https://www.buymeacoffee.com/yourusername"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Buy me a coffee"
+          className="w-8 h-8 flex items-center justify-center rounded-full shrink-0"
+          style={{
+            background: "#1a1a1a",
+            border: "1px solid #2a2a2a",
+            color: "#a78bfa",
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 8h13a3 3 0 0 1 0 6h-1M4 8v9a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-3M4 8l1-4h9l1 4"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </a>
         <button
           onClick={onPostClick}
           className="flex items-center gap-1.5"
@@ -1172,7 +1221,8 @@ function Header({
             border: "1px solid rgba(15, 15, 15, 0.08)",
             cursor: "pointer",
           }}
-        >
+        >     
+              
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path
               d="M7 1v12M1 7h12"

@@ -15,7 +15,8 @@ export interface Fest {
   end_date: string;
   poster_image_url: string;
   registration_link: string;
-  status: "approved" | "pending";
+  description: string | null;   // add this line
+  status: "approved" | "pending" | "rejected" | "deleted";
   tags: Category[];
 }
 

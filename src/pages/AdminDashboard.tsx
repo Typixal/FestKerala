@@ -80,6 +80,7 @@ function EditableFest({
         end_date: draft.end_date,
         registration_link: draft.registration_link,
         tags: draft.tags,
+        description: draft.description,
       })
       .eq("id", fest.id);
     setBusy(null);
@@ -106,51 +107,45 @@ function EditableFest({
     onRemoved(fest.id);
   };
 
-  const reject = async () => {
-    if (
-      !confirm(`Reject and delete "${fest.fest_name}"? This can't be undone.`)
-    )
-      return;
-    setBusy("reject");
-    setError(null);
-    // Log the removal first so the organizer's status link can show
-    // "rejected" instead of a bare "not found" once the row is gone.
-    // Best-effort: if this insert fails we still proceed with the delete
-    // rather than blocking moderation on it.
-    await supabase
-      .from("fest_removals")
-      .insert({ id: fest.id, fest_name: fest.fest_name, reason: "rejected" });
-    const { error } = await supabase.from("fests").delete().eq("id", fest.id);
-    setBusy(null);
-    if (error) {
-      setError("Reject failed. Try again.");
-      return;
-    }
-    onRemoved(fest.id);
-  };
+const reject = async () => {
+  if (
+    !confirm(`Reject "${fest.fest_name}"? The submitter will see it as not approved.`)
+  )
+    return;
+  setBusy("reject");
+  setError(null);
+  const { error } = await supabase
+    .from("fests")
+    .update({ status: "rejected" })
+    .eq("id", fest.id);
+  setBusy(null);
+  if (error) {
+    setError("Reject failed. Try again.");
+    return;
+  }
+  onRemoved(fest.id);
+};
 
-  const unlist = async () => {
-    if (
-      !confirm(
-        `Unlist and delete "${fest.fest_name}"? It will be removed from the site permanently — this can't be undone.`,
-      )
+const unlist = async () => {
+  if (
+    !confirm(
+      `Unlist "${fest.fest_name}"? It will be removed from the public site.`,
     )
-      return;
-    setBusy("unlist");
-    setError(null);
-    // Same as reject — log before deleting so a status-link check doesn't
-    // look identical to a fest that was never approved at all.
-    await supabase
-      .from("fest_removals")
-      .insert({ id: fest.id, fest_name: fest.fest_name, reason: "unlisted" });
-    const { error } = await supabase.from("fests").delete().eq("id", fest.id);
-    setBusy(null);
-    if (error) {
-      setError("Unlist failed. Try again.");
-      return;
-    }
-    onRemoved(fest.id);
-  };
+  )
+    return;
+  setBusy("unlist");
+  setError(null);
+  const { error } = await supabase
+    .from("fests")
+    .update({ status: "unlisted" })
+    .eq("id", fest.id);
+  setBusy(null);
+  if (error) {
+    setError("Unlist failed. Try again.");
+    return;
+  }
+  onRemoved(fest.id);
+};
 
   return (
     <div
@@ -274,6 +269,16 @@ function EditableFest({
                   }))
                 }
                 placeholder="Registration link"
+              />
+              <textarea
+                className="field"
+                rows={2}
+                maxLength={100}
+                value={draft.description ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, description: e.target.value }))
+                }
+                placeholder="About the fest"
               />
               <div className="flex flex-wrap gap-1.5">
                 {CATEGORIES.map((tag) => {
@@ -524,9 +529,9 @@ export default function AdminDashboard() {
       })),
     );
     const { error } = await supabase
-      .from("fests")
-      .delete()
-      .in("id", Array.from(selected));
+    .from("fests")
+    .update({ status: "rejected" })
+    .in("id", Array.from(selected));
     setBulkBusy(false);
     if (error) {
       alert("Bulk reject failed. Please try again.");

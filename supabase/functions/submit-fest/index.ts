@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
       poster_image_url,
       registration_link,
       tags,
+      description,
     } = body;
 
     // 1. Verify Turnstile token
@@ -80,7 +81,12 @@ Deno.serve(async (req) => {
         },
       );
     }
-
+    if (!description || description.length > 100) {
+        return new Response(JSON.stringify({ error: 'Invalid description' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     // 3. Insert using service role (bypasses RLS, forces pending)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -97,6 +103,7 @@ Deno.serve(async (req) => {
         end_date,
         poster_image_url,
         registration_link,
+        description,   
         tags,
         status: "pending",
       })
